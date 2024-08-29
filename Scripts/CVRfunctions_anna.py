@@ -92,8 +92,7 @@ def participants(hit, cvr):
                                 if enddate is not None:
                                     lines.append([cvr, entity_id, name, participanttype,
                                                   relationtype, 'exit', enddate])
-                    else if:
-                        #function['type'] == 'EJERANDEL_PROCENT:
+                    else if function['type'] == 'EJERANDEL_PROCENT':
                         # call owner function parser
                     else:
                         continue
