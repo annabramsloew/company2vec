@@ -37,6 +37,28 @@ with open('/Users/annabramslow/Downloads/29140774.json') as f:
 ######################### FUNCTIONS #########################
 
 
+def add_participant(entity, value, cvr):
+    
+    #dates                
+    time = value['periode']
+    startdate = time['gyldigFra']
+    enddate = time['gyldigTil']
+    
+    #entity ID - take cvr for businesses, otherwise 'unit id'
+    if entity['deltager']['forretningsnoegle'] is not None:
+        entity_id = entity['deltager']['forretningsnoegle']
+    else:
+        entity_id = entity['deltager']['enhedsNummer']
+    
+    #entity name (take most recent name)
+    name = entity['deltager']['navne'][0]['navn']
+    
+    #participant type (company or person)
+    participanttype = entity['deltager']['enhedstype']
+    
+    return [cvr, entity_id, name, participanttype]
+    
+
 def participants(hit, cvr):
     
     company = hit['Vrvirksomhed']
@@ -52,11 +74,34 @@ def participants(hit, cvr):
                 
                 for function in item['attributter']:
                     
-                    if function['type'] == 'FUNKTION':
+                    if function['type'] == 'EJERANDEL_PROCENT':
+                        
+                        # call owner function parser
+                        
+                        #loop through roles of participant
+                        for value in function['vaerdier']:
+                            
+                            #relation type
+                            relationtype = "EJERANDEL"
+                            
+                            #equity
+                            equity = value['vaerdi']
+                            
+                            entryline = [relationtype, 'entry', value['periode']['gyldigFra'], equity]
+                            exitline = [relationtype, 'exit', value['periode']['gyldigTil'], equity]
+                            
+                            line = add_participant(entity, value, cvr) + entryline
+                            
+                            lines.append(line)
+                            
+                            if value['periode']['gyldigTil'] is not None:
+                                line = add_participant(entity, value, cvr) + exitline 
+                                lines.append(line)
+
+                    
+                    elif function['type'] == 'FUNKTION':
                         
                         #call person function parser
-                        
-                        ## move below to its own function
                         
                         #loop through roles of participant
                         for value in function['vaerdier']:
@@ -64,40 +109,29 @@ def participants(hit, cvr):
                             #relation type
                             relationtype = value['vaerdi']
                             
+                            #equity
+                            equity = None
+                            
                             #do not record auditing relationships
-                            if relationtype == 'REVISION':
+                            if relationtype in ['REVISION','Reel ejer']:
                                 continue 
                             else:
-                
-                                #dates                
-                                time = value['periode']
-                                startdate = time['gyldigFra']
-                                enddate = time['gyldigTil']
                                 
-                                #entity ID - take cvr for businesses, otherwise 'unit id'
-                                if entity['deltager']['forretningsnoegle'] is not None:
-                                    entity_id = entity['deltager']['forretningsnoegle']
-                                else:
-                                    entity_id = entity['deltager']['enhedsNummer']
+                                entryline = ['entry', value['periode']['gyldigFra'], equity]
+                                exitline = ['exit', value['periode']['gyldigTil'], equity]
                                 
-                                #entity name (take most recent name)
-                                name = entity['deltager']['navne'][0]['navn']
+                                line = add_participant(entity, value, cvr) + entryline
                                 
-                                #participant type (company or person)
-                                participanttype = entity['deltager']['enhedstype']
+                                lines.append(line)
                                 
-                                lines.append([cvr, entity_id, name, participanttype,
-                                              relationtype,'entry', startdate])
-                                
-                                if enddate is not None:
-                                    lines.append([cvr, entity_id, name, participanttype,
-                                                  relationtype, 'exit', enddate])
-                    else if function['type'] == 'EJERANDEL_PROCENT':
-                        # call owner function parser
+                                if value['periode']['gyldigTil'] is not None:
+                                    line = add_participant(entity, value, cvr) + exitline 
+                                    lines.append(line)
+                    
                     else:
                         continue
     
     df = pd.DataFrame(lines,columns=['CVR','EntityID','Name', 'ParticipantType',
-                                     'RelationType', 'Participation', 'Date' ])
+                                     'RelationType', 'Participation', 'Date', 'Equity Pct' ])
             
     return df
