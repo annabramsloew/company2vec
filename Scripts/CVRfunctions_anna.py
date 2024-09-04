@@ -18,26 +18,20 @@ from elasticsearch_dsl import Search, Q
 from datetime import datetime
 import json
 
-from CVR_script import connectToCvr
-
 ######################### SETUP #########################
-cvr_input = '29140774'
+cvr = '35657339'
 
-cvr = cvr_input
-es = connectToCvr()
-s = Search(using=es, index="virksomhed") \
-    .source(['Vrvirksomhed']) \
-    .filter("term", Vrvirksomhed__cvrNummer=cvr)
-response = s.execute()
-hit = response[0]
-
-with open('/Users/annabramslow/Downloads/29140774.json') as f:
-    hit = json.load(f)
+# with open('/Users/annabramslow/Downloads/29140774.json') as f:
+#     hit = json.load(f)
+    
+with open('/Users/annabramslow/Downloads/virksomheder.json') as f:
+    virksomheder = json.load(f)
+    hit = virksomheder[0]['_source']
 
 ######################### FUNCTIONS #########################
 
 
-def add_participant(entity, value, cvr):
+def add_participant(lines, entity, value, cvr, relationtype, equity):
     
     #dates                
     time = value['periode']
@@ -56,7 +50,14 @@ def add_participant(entity, value, cvr):
     #participant type (company or person)
     participanttype = entity['deltager']['enhedstype']
     
-    return [cvr, entity_id, name, participanttype]
+    
+    #append entry and exit lines
+    lines.append([cvr, entity_id, name, participanttype,
+                      relationtype,'entry', startdate, equity])
+
+    if enddate is not None:
+        lines.append([cvr, entity_id, name, participanttype,
+                      relationtype, 'exit', enddate, equity])
     
 
 def participants(hit, cvr):
@@ -76,8 +77,6 @@ def participants(hit, cvr):
                     
                     if function['type'] == 'EJERANDEL_PROCENT':
                         
-                        # call owner function parser
-                        
                         #loop through roles of participant
                         for value in function['vaerdier']:
                             
@@ -87,20 +86,11 @@ def participants(hit, cvr):
                             #equity
                             equity = value['vaerdi']
                             
-                            entryline = [relationtype, 'entry', value['periode']['gyldigFra'], equity]
-                            exitline = [relationtype, 'exit', value['periode']['gyldigTil'], equity]
-                            
-                            line = add_participant(entity, value, cvr) + entryline
-                            
-                            lines.append(line)
-                            
-                            if value['periode']['gyldigTil'] is not None:
-                                line = add_participant(entity, value, cvr) + exitline 
-                                lines.append(line)
+                            #call participant parser for owners
+                            add_participant(lines, entity, value, cvr, relationtype, equity)
 
                     
-                    elif function['type'] == 'FUNKTION':
-                        
+                    if function['type'] == 'FUNKTION':
                         #call person function parser
                         
                         #loop through roles of participant
@@ -117,21 +107,13 @@ def participants(hit, cvr):
                                 continue 
                             else:
                                 
-                                entryline = ['entry', value['periode']['gyldigFra'], equity]
-                                exitline = ['exit', value['periode']['gyldigTil'], equity]
+                                #call participant parser for non-owners
+                                add_participant(lines, entity, value, cvr, relationtype, equity)
                                 
-                                line = add_participant(entity, value, cvr) + entryline
-                                
-                                lines.append(line)
-                                
-                                if value['periode']['gyldigTil'] is not None:
-                                    line = add_participant(entity, value, cvr) + exitline 
-                                    lines.append(line)
-                    
                     else:
                         continue
     
     df = pd.DataFrame(lines,columns=['CVR','EntityID','Name', 'ParticipantType',
-                                     'RelationType', 'Participation', 'Date', 'Equity Pct' ])
+                                     'RelationType', 'Participation', 'Date', 'EquityPct' ])
             
     return df
