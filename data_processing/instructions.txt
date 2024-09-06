@@ -1,0 +1,14 @@
+
+
+# xml queries
+python /Users/nikolaibeckjensen/Desktop/erhvervsstyrelsen-api/fetch_data.py --query="xml_reports" --query_date_start="2013-01-01" --query_date_end="2013-12-31" --days_per_query=30 --virk_credentials_path="/Users/nikolaibeckjensen/Desktop/erhvervsstyrelsen-api/credentials.json" --local_save_path="/Users/nikolaibeckjensen/Desktop/test/2013.csv"
+
+
+# data parser
+python /Users/nikolaibeckjensen/Desktop/erhvervsstyrelsen-api/fetch_data.py --query="cvr_tables" --xml_reports_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/xml_links" --virk_credentials_path="/Users/nikolaibeckjensen/Desktop/erhvervsstyrelsen-api/credentials.json" --table_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables"
+
+
+/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables
+
+
+
