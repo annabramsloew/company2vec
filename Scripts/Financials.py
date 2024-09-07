@@ -1,3 +1,12 @@
+# ----------------------------- SET UP ----------------------------- #
+import pandas as pd
+import numpy as np
+import requests
+import xmltodict
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(style="whitegrid")
 
 #load data from xml_links folder
 
