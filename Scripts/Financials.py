@@ -10,6 +10,7 @@ sns.set(style="whitegrid")
 
 #load data from xml_links folder
 
+# SET YOUR PATH HERE
 #main_path = r'/Users/annabramslow/Library/CloudStorage/Dropbox/DTU/Virk2Vec/xml_links/'
 
 #load data from xml_links folder
@@ -63,6 +64,7 @@ def find_audit_class(xml_data, first_key):
                     audit_class = xml_data[first_key][key][0]['#text']
                     return audit_class
 
+
 #find report type (annual, half-yearly, etc.)
 def find_report_type(xml_data, first_key):    
     if xml_data == None:
@@ -71,8 +73,16 @@ def find_report_type(xml_data, first_key):
         for key in xml_data[first_key].keys():
             if 'InformationOnTypeOfSubmittedReport' in key:
                 try:
-                    report_type = xml_data[first_key][key]['#text']
-                    return report_type
+                    result = xml_data[first_key][key]
+                    if isinstance(result, dict):
+                        report_type = xml_data[first_key][key]['#text']
+                        return report_type
+                    elif isinstance(result, list):
+                        report_type = xml_data[first_key][key][0]['#text']
+                        return report_type
+                    else:
+                        report_type = None
+                        return report_type
                     
                 except:
                     report_type = None
@@ -81,26 +91,53 @@ def find_report_type(xml_data, first_key):
 
 #find currency of the report
 def find_currency(xml_data, first_key):    
-    if xml_data == None:
+    if xml_data is None:
         return None
-    else:
-        try:
-            for measure in xml_data[first_key]['unit']:
-                currency_info = measure['measure'].split(':')[1]
-                if currency_info == 'DKK':
-                    currency = currency_info
-                elif currency_info == 'EUR':
-                    currency = currency_info
-                elif currency_info == 'USD':
-                    currency = currency_info
-                else:
-                    currency = None
-                return currency
-        except:
-            currency = None
-            return currency
+
+    try:
+        for key in xml_data[first_key].keys():
+            if 'unit' in key:
+                result = xml_data[first_key][key]
+                
+                # Handle dictionary case by converting it to a list
+                if isinstance(result, dict):
+                    result = [result]
+                
+                # Iterate through result list (handling both dict and list cases)
+                for item in result:
+                    if isinstance(item, dict):
+                        for another_key in item.keys():
+                            if 'measure' in another_key:
+                                currency_info = item[another_key]
+
+                                # Check if currency_info is a string and contains a colon
+                                if isinstance(currency_info, str) and ':' in currency_info:
+                                    parts = currency_info.split(':')
+                                    # Ensure there are at least two parts after splitting
+                                    if len(parts) > 1 and parts[1] in ['DKK', 'EUR', 'USD', 'CHF', 'GBP', 'SEK', 'NOK']:
+                                        return parts[1]  # Return the found currency
+                                
+                                # Handle case where currency_info is a dictionary
+                                elif isinstance(currency_info, dict):
+                                    for subvalue in currency_info.values():
+                                        # Check if subvalue is a string and contains a colon
+                                        if isinstance(subvalue, str) and ':' in subvalue:
+                                            parts = subvalue.split(':')
+                                            # Ensure there are at least two parts after splitting
+                                            if len(parts) > 1 and parts[1] in ['DKK', 'EUR', 'USD', 'CHF', 'GBP', 'SEK', 'NOK']:
+                                                return parts[1]  # Return the found currency
+        
+        return None  # If no currency was found
+
+    except:
+        return None
         
 # ----------------------------- FETCH FINANCIAL DATA ----------------------------- #
+
+#selected keys
+selected_keys = ['GrossProfitLoss', 'EmployeeBenefitsExpense', 'WagesAndSalaries', 'ProfitLoss', 'OtherFinanceIncome','OtherFinanceExpenses',
+                 'NonCurrentAssets','CurrentAssets','CashAndCashEquivalents','Assets', 'Equity', 'ShorttermLiabilitiesOtherThanProvisions',
+                 'LongtermLiabilitiesOtherThanProvisions','ShorttermDebtToBanks','LiabilitiesOtherThanProvisions','LiabilitiesAndEquity']
 
 #fetch financial data from xml
 def fetch_financials(url, cvr, publicationdate, selected_keys):
@@ -155,6 +192,23 @@ def fetch_financials(url, cvr, publicationdate, selected_keys):
     
     else:
         #create list of None values
-        line = [None]*len(columns)
+        #line = [None]*len(columns)
+        line = None
     
     return line
+
+# ----------------------------- CREATE DF ----------------------------- #
+# load rows from flatfile and sort away none results, create df
+"""
+#test on df
+financials = []
+
+for i in range(len(df)):
+    financials.append(fetch_financials(df['UrlXML'].iloc[i], df['CVR'].iloc[i], df['PublicationDate'].iloc[i], selected_keys))
+
+#save financials in dataframe
+columns=['CVR','PublicationDate', 'AuditClass','ReportType','Currency']+selected_keys
+#pick only rows where line is not None in financials
+financials = [line for line in financials if line is not None]
+df_financials = pd.DataFrame(financials, columns=columns)
+"""
