@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import requests
 import xmltodict
+import datetime as dt
+import collections
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -131,16 +133,62 @@ def find_currency(xml_data, first_key):
 
     except:
         return None
+    
+
+  
+# create mapping from context id to date
+def retrieve_context_ids(xml, firstkey):
+    if xml == None:
+        return None
+
+    context_id_to_date = {}
+    
+    for key in xml[firstkey].keys():
+        if "context" in key:
+            context = xml[firstkey][key]
+
+            for var in context:
+                context_id, end_date = None, None
+
+                for key in var.keys():
+                    if 'id' in key:
+                        context_id = var[key]
+                    elif 'period' in key:
+                        period = var[key]
+                        for key in period.keys():
+                            if 'end' in key:
+                                end_date = period[key]
+                            elif 'instant' in key:
+                                end_date = period[key]
+                if context_id and end_date:
+                    # create datetime object
+                    if isinstance(end_date, collections.OrderedDict):
+                        end_date = end_date['#text']
+                    context_id_to_date[context_id] = dt.datetime.strptime(end_date, '%Y-%m-%d')
+    
+    return context_id_to_date
+
+def find_newest_context_id(context_id_to_date, context_ids):
+    newest_date = None
+    newest_context_id = None
+
+    for context_id in context_ids:
+        if context_id in context_id_to_date:
+            date = context_id_to_date[context_id]
+            if newest_date == None or date > newest_date:
+                newest_date = date
+                newest_context_id = context_id
+
+    return newest_context_id
         
 # ----------------------------- FETCH FINANCIAL DATA ----------------------------- #
 
 #selected keys
-selected_keys = ['GrossProfitLoss', 'EmployeeBenefitsExpense', 'WagesAndSalaries', 'ProfitLoss', 'OtherFinanceIncome','OtherFinanceExpenses',
-                 'NonCurrentAssets','CurrentAssets','CashAndCashEquivalents','Assets', 'Equity', 'ShorttermLiabilitiesOtherThanProvisions',
-                 'LongtermLiabilitiesOtherThanProvisions','ShorttermDebtToBanks','LiabilitiesOtherThanProvisions','LiabilitiesAndEquity']
+
 
 #fetch financial data from xml
 def fetch_financials(url, cvr, publicationdate, selected_keys):
+
     
     columns=['CVR','PublicationDate', 'AuditClass','ReportType','Currency']+selected_keys
     
@@ -155,6 +203,8 @@ def fetch_financials(url, cvr, publicationdate, selected_keys):
 
     #find currency in report
     currency = find_currency(xml, firstkey)
+
+    context_id_to_date = retrieve_context_ids(xml, firstkey)
 
     if report_type == 'Årsrapport' or report_type == 'Annual report' or report_type == None:
 
@@ -171,25 +221,44 @@ def fetch_financials(url, cvr, publicationdate, selected_keys):
                 except:
                     pass
         
-        #find financial values
+    #find financial values
         for value in financial_keys:
             if value == None:
                 financial_values.append(None)
             else:
                 try:
-                    #take first value of the key ¯\_(ツ)_/¯
                     result = xml[firstkey][value]
                     if isinstance(result, dict):
                         financial_values.append(xml[firstkey][value]['#text'])
                     elif isinstance(result, list):
-                        financial_values.append(xml[firstkey][value][0]['#text'])
+                        if len(result) == 1:
+                            financial_values.append(xml[firstkey][value][0]['#text'])
+                        else:
+                            # find the corresponding context id for this year
+                            #print()
+                            #print("Found multiple values for ", value)
+                    
+                            context_ids = [x['@contextRef'] for x in result]
+                            #print("Possible context ids: ", context_ids)
+                            
+                            newest_context_id = find_newest_context_id(context_id_to_date, context_ids)
+                            #print("Newest context id: ", newest_context_id)
+                            
+                            # find the index corresponding to the newest context id
+                            idx = context_ids.index(newest_context_id)
+                            #print("Index: ", idx)
+                            value = xml[firstkey][value][idx]['#text']
+
+                            #print("Chose context id: ", newest_context_id, "with value", value)
+
+                            financial_values.append(value)
                     else:
                         financial_values.append(None)
                 except:
                     financial_values.append(None)
 
         line = [cvr, publicationdate, audit_class, report_type, currency]+financial_values
-    
+
     else:
         #create list of None values
         #line = [None]*len(columns)
@@ -212,3 +281,4 @@ columns=['CVR','PublicationDate', 'AuditClass','ReportType','Currency']+selected
 financials = [line for line in financials if line is not None]
 df_financials = pd.DataFrame(financials, columns=columns)
 """
+
