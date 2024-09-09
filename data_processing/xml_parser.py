@@ -164,6 +164,8 @@ def retrieve_context_ids(xml, firstkey):
                     # create datetime object
                     if isinstance(end_date, collections.OrderedDict):
                         end_date = end_date['#text']
+                    elif isinstance(end_date, dict):
+                        end_date = end_date['#text']
                     context_id_to_date[context_id] = dt.datetime.strptime(end_date, '%Y-%m-%d')
     
     return context_id_to_date
