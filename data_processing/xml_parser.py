@@ -150,16 +150,20 @@ def retrieve_context_ids(xml, firstkey):
             for var in context:
                 context_id, end_date = None, None
 
-                for key in var.keys():
-                    if 'id' in key:
-                        context_id = var[key]
-                    elif 'period' in key:
-                        period = var[key]
-                        for key in period.keys():
-                            if 'end' in key:
-                                end_date = period[key]
-                            elif 'instant' in key:
-                                end_date = period[key]
+                if isinstance(var, dict):
+                    for key in var.keys():
+                        if 'id' in key:
+                            context_id = var[key]
+                        elif 'period' in key:
+                            period = var[key]
+                            for key in period.keys():
+                                if 'end' in key:
+                                    end_date = period[key]
+                                elif 'instant' in key:
+                                    end_date = period[key]
+                else:
+                    print("Unexpected type: ", type(var))
+                    print(var)
                 if context_id and end_date:
                     # create datetime object
                     if isinstance(end_date, collections.OrderedDict):
