@@ -5,6 +5,7 @@ import requests
 import xmltodict
 import datetime as dt
 import collections
+import time
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -37,6 +38,19 @@ def load_data(main_path):
 def parse_xml(url, timeout=10):
     try:
         response = requests.get(url, timeout=timeout)
+
+        #check status code
+        status = response.status_code
+
+        #handle 500 status code with retry
+        retry_count = 5
+        while status == 500 and retry_count > 0:
+            print("Server error, waiting 10 seconds")
+            time.sleep(10)
+            response = requests.get(url, timeout=timeout)
+            status = response.status_code
+            retry_count -= 1
+
         data = xmltodict.parse(response.content)
         return data
     except:
@@ -57,14 +71,19 @@ def find_audit_class(xml_data, first_key):
     if xml_data == None:
         return None
     else:
-        for key in xml_data[first_key].keys():
-            if 'ClassOfReportingEntity' in key:
-                try:
-                    audit_class = xml_data[first_key][key]['#text']
-                    return audit_class
-                except:
-                    audit_class = xml_data[first_key][key][0]['#text']
-                    return audit_class
+        try: 
+            for key in xml_data[first_key].keys():
+                if 'ClassOfReportingEntity' in key:
+                    try:
+                        audit_class = xml_data[first_key][key]['#text']
+                        return audit_class
+                    except:
+                        audit_class = xml_data[first_key][key][0]['#text']
+                        return audit_class
+        except:
+            print(first_key)
+            print(xml_data)
+            print(xml_data[first_key].keys())
 
 
 #find report type (annual, half-yearly, etc.)
@@ -163,6 +182,7 @@ def retrieve_context_ids(xml, firstkey):
                                     end_date = period[key]
                 else:
                     print("Unexpected type: ", type(var))
+                    print(context)
                     print(var)
                 if context_id and end_date:
                     # create datetime object
