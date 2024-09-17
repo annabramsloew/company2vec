@@ -82,7 +82,6 @@ def find_audit_class(xml_data, first_key):
                         return audit_class
         except:
             print(first_key)
-            print(xml_data)
             print(xml_data[first_key].keys())
 
 
@@ -166,6 +165,10 @@ def retrieve_context_ids(xml, firstkey):
         if "context" in key:
             context = xml[firstkey][key]
 
+            #handle case where context is a dictionary and not a list
+            if isinstance(context, dict):
+                context = [context]
+
             for var in context:
                 context_id, end_date = None, None
 
@@ -182,8 +185,7 @@ def retrieve_context_ids(xml, firstkey):
                                     end_date = period[key]
                 else:
                     print("Unexpected type: ", type(var))
-                    print(context)
-                    print(var)
+
                 if context_id and end_date:
                     # create datetime object
                     if isinstance(end_date, collections.OrderedDict):
@@ -240,6 +242,7 @@ def fetch_financials(url, cvr, publicationdate, selected_keys):
 
         #find financial keys
         for i, value  in enumerate(selected_keys):
+            
             for key in xml[firstkey].keys():
                 try:
                     if key.split(':')[1] == value:
