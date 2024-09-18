@@ -1,5 +1,6 @@
 import pandas as pd
 import json
+import re
 
 
 class VirkResult():
@@ -37,6 +38,10 @@ class VirkResult():
                 participant_lines += self.participants(hit, cvr)
                 
             return registration_lines, employee_lines, production_unit_lines, company_info_lines, participant_lines
+
+        elif endpoint == 'registreringstekster/registreringstekst':
+            return self.investments()
+        
         else:
             raise NotImplementedError('Parsing for this endpoint is not implemented yet.')
 
@@ -377,3 +382,108 @@ class VirkResult():
                             continue
         
         return lines_hit
+
+
+    def investments(self) -> list:
+        """ Fetches all capital changes for a given company hit.
+        Returns a list of lists with values: CVR, Date, CapitalPostInvestment, InvestmentDKK, PaymentType, Rate
+        """
+
+        lines = []
+
+        for hit in self.hit_list:
+            text = hit["_source"]['tekst']
+            cvr = hit["_source"]['cvrNummer']
+
+            parsed_data = self.parse_text(text)
+            date = parsed_data['Date']
+            capital_post_investment = parsed_data['CapitalPostInvestment']
+
+            for i in range(len(parsed_data['Investments'])):
+                investment_dkk = parsed_data['Investments'][i]['InvestmentDKK']
+                payment_type = parsed_data['Investments'][i]['PaymentType']
+                rate = parsed_data['Investments'][i]['Rate']
+
+                lines.append([cvr, date, capital_post_investment, investment_dkk, payment_type, rate])
+        return lines
+
+           
+    def remove_html_tags(self, text):
+        # This will remove all HTML tags
+        text = re.sub(r'<[^>]+>', '', text)
+
+        # remove all newlines
+        for i in range(6,0,-1):
+            if i == 1:
+                text = text.replace('\n', ' ')
+            else:
+                text = text.replace('\n'*i, '')
+                text = text.replace(" "*i, " ")
+        return text
+
+
+    def convert_capital_to_float(self, string):
+
+        # remove final character if it is a period/comma
+        if string[-1] in [".", ","]:
+            string = string[:-1]
+        
+        # replace all periods
+        string = string.replace(".", "")
+
+        # replace all commas with periods
+        string = string.replace(",", ".")
+
+        return float(string)
+
+
+
+    def format_date(self, date_str):
+        # remove final character if it is a period/comma
+        if date_str[-1] in [".", ","]:
+            date_str = date_str[:-1]
+
+        date_str = date_str.replace(".", "-")
+        
+        return date_str
+
+
+    def parse_text(self,text):
+        # Remove all HTML tags / clean
+        text = self.remove_html_tags(text)
+
+        # Dictionary to hold parsed information
+        parsed_data = {}
+
+        # Extract "Vedtægter ændret" date
+        date_match = re.search(r'Vedtægter ændret:\s*(\d{2}\.\d{2}\.\d{4})', text)
+        if date_match:
+            parsed_data['Date'] = self.format_date(date_match.group(1))
+
+        # Extract capital increase/decrease type
+        capital_type_match = re.search(r'(Kapitalforhøjelse|Kapitalnedsættelse)', text)
+        if capital_type_match:
+            parsed_data['InvestmentType'] = capital_type_match.group(1)
+
+        # Extract all occurrences ["XXXX kr indbetalt THROUGH_METHOD kurs YYYY"].
+        # Returns a list of tuples where elements in tuples are 1: XXXX, element 2: THROUGH_METHOD, element 3: YYYY
+        payment_type_matches = re.findall(r'kr\.\s*([\d\.,]+)\s*indbetalt\s*(.*?)(?:,\s*kurs\s*([\d\.,]+))', text)
+
+        # Extract final capital amount "Kapitalen udgør herefter"
+        final_capital_match = re.search(r'Kapitalen udgør herefter\s*kr\.\s*([\d\.,]+)', text)
+        if final_capital_match:
+            parsed_data['CapitalPostInvestment'] = self.convert_capital_to_float(final_capital_match.group(1))
+
+        # Store the extracted investments in a list of dictionaries
+        investments = []
+        for i in range(len(payment_type_matches)):
+            investment = {
+                'InvestmentDKK':self.convert_capital_to_float(payment_type_matches[i][0]),
+                'PaymentType': payment_type_matches[i][1],
+                'Rate': self.convert_capital_to_float(payment_type_matches[i][2])
+            }
+            investments.append(investment)
+
+        parsed_data['Investments'] = investments
+
+        return parsed_data
