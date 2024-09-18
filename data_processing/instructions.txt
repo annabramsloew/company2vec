@@ -12,6 +12,7 @@ Note: Before doing so, one must acquire API key credentials by reaching out to E
 python fetch_data.py --query="xml_reports" --query_date_start="2013-01-01" --query_date_end="2013-12-31" --days_per_query=30 --virk_credentials_path="/Desktop/credentials.json" --local_save_path="/Desktop/xml_links/2013.csv"
 
 
+
 **Step 2: Fetching Company Data**
 - Use the following command line call to fetch all relevant company data
 - Specify the folder where you stored results from Step 1 in the argument 'xml_reports_folder'
@@ -19,12 +20,23 @@ python fetch_data.py --query="xml_reports" --query_date_start="2013-01-01" --que
 - The function will filter the relevant CVR numbers from the xml links and query the relevant APIs to populate the subfolder tables.
 
 # command line call:
-python fetch_data.py --query="cvr_tables" --xml_reports_folder="/Desktop/xml_links" --virk_credentials_path="/Desktop/credentials.json" --table_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables"
+python fetch_data.py --query="cvr_tables" --xml_reports_folder="/Desktop/xml_links" --virk_credentials_path="/Desktop/credentials.json" --table_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables" --overwrite="False"
+
 
 
 **Step 3: Fetching Financial Data
+-use the following command line call to fetch and parse all xml financial reports in the xml_reports folder
 
+# command line call:
 python fetch_data.py --query="xbrl_parser" --xml_reports_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/xml_links" --table_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables" --overwrite="False" --chunk_size=10000
+
+
+
+**Step 4: Fetching Investment/Changes in capital structure
+- use the following command line call to fetch all capital changes for the companies with xml-reports. (ie. investment of X DKK paid (in cash/debt/valuables) at rate YYY)
+
+# command line call:
+python fetch_data.py --query="capital_changes" --xml_reports_folder="/Desktop/xml_links" --virk_credentials_path="/Desktop/credentials.json" --table_folder="/Desktop/Tables" --overwrite="False"
 
 
 

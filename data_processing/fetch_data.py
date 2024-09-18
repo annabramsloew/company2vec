@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import time
 from VirkConnection import VirkConnection
-from queries import xbrl_reports_query, cvr_query
+from queries import xbrl_reports_query, cvr_query, capital_changes_query
 from helpers import date_chunks, unique_cvr
 from xml_parser import fetch_financials
 import datetime as dt
@@ -24,9 +24,10 @@ parser.add_argument("--local_save_path", default=None, type=str)
 # necessary arguments for cvr query and xbrl parser
 parser.add_argument("--xml_reports_folder", default=None, type=str) # folder containing csv files with CVR numbers
 parser.add_argument("--table_folder") # folder to save the tables (must contain subfolders for each table: Registrations, EmployeeCounts, ProductionUnits, CompanyInfo, Participants, Financials)
+parser.add_argument("--overwrite", default="False", type=str)  # overwrite existing chunks, otherwise continues from the latest chunk
 
 # additional arguments for xbrl parser
-parser.add_argument("--overwrite", default="False", type=str)  # overwrite existing chunks, otherwise continues from the latest chunk
+
 parser.add_argument("--chunk_size", default=10000, type=int)  # chunk size for the xbrl parser
 
 # paths
@@ -89,9 +90,18 @@ elif args.query == 'cvr_tables':
     
 
     # iterate through the query chunks:
-    for i in range(2):#range(len(index_intervals)):
+    for i in range(len(index_intervals)):
         start_time = time.time()
         print("iteration: ", i) 
+
+        # check if the chunk already exists
+        chunk_path = args.table_folder + "/Registrations" + f'/chunk{i}.csv'
+        if os.path.exists(chunk_path):
+            if args.overwrite == 'True':
+                print(f"Overwriting: Chunk {i} already exists at path {chunk_path}")
+            else:
+                print(f"Skipping: Chunk {i} already exists at path {chunk_path}")
+                continue
 
         # fetch the relevant cvr numbers
         if i == len(index_intervals)-1:
@@ -103,7 +113,7 @@ elif args.query == 'cvr_tables':
         print("Querying data from index: ", index_intervals[i])
 
         # create the query
-        query = cvr_query(cvr_list_current, result_size=10000)
+        query = cvr_query(cvr_list_current, result_size=1000)
 
         connection = VirkConnection(
                 credentials = credentials,
@@ -125,7 +135,7 @@ elif args.query == 'cvr_tables':
         df_participants = pd.DataFrame(connection.parsed_data[4], columns=['CVR','EntityID','Name', 'ParticipantType','RelationType', 'Participation', 'Date', 'EquityPct' ]).to_csv(args.table_folder + "/Participants" + f'/chunk{i}.csv')
         
         end_time = time.time()
-        print("Time elapsed fetching and saving 50k results: ", end_time - start_time)
+        print("Time elapsed fetching and saving 10k results: ", end_time - start_time)
 
         time.sleep(10)
 
@@ -197,6 +207,69 @@ elif args.query == 'xbrl_parser':
         df_financials = pd.DataFrame(lines, columns=['CVR', "PublicationDate", "AuditClass", "ReportType", "Currency"] + selected_keys).to_csv(args.table_folder + "/Financials" + f'/chunk{i}.csv')
         end_time = time.time()
         print(f"Time elapsed fetching and saving {CHUNK_SIZE} results: ", end_time - start_time)
+
+
+
+
+elif args.query == 'capital_changes':
+    cvr_list = unique_cvr(args.xml_reports_folder)
+    print("CVR list length: ", len(cvr_list))
+
+    # testing
+    #cvr_list = ["35657339", "29140774", "37375675"]
+    #df_cvr = pd.DataFrame(cvr_list, columns=['CVR'])
+
+
+
+    # split the cvr list into chunks of 10,000 to avoid timeouts
+    index_intervals = [i for i in range(0, len(cvr_list), 10000)]
+    
+
+    # iterate through the query chunks:
+    for i in range(len(index_intervals)):
+        start_time = time.time()
+        print("iteration: ", i) 
+
+        # check if the chunk already exists
+        chunk_path = args.table_folder + "/CapitalChanges" + f'/chunk{i}.csv'
+        if os.path.exists(chunk_path):
+            if args.overwrite == 'True':
+                print(f"Overwriting: Chunk {i} already exists at path {chunk_path}")
+            else:
+                print(f"Skipping: Chunk {i} already exists at path {chunk_path}")
+                continue
+
+        # fetch the relevant cvr numbers
+        if i == len(index_intervals)-1:
+            cvr_list_current = cvr_list[index_intervals[i]:]
+        else:
+            cvr_list_current = cvr_list[index_intervals[i]:index_intervals[i+1]]
+
+        print()
+        print("Querying data from index: ", index_intervals[i])
+
+        # create the query
+        query = capital_changes_query(cvr_list_current, result_size=1000)
+
+        connection = VirkConnection(
+                credentials = credentials,
+                query = query,
+                endpoint = r"registreringstekster/registreringstekst",  
+                MAX_ITERATIONS = 100
+            ) 
+        connection.execute_query()
+        print("Query executed")
+        connection.parse_results()
+        print("Data parsed")
+
+        # save the data
+        print("Saving data")
+        df_capitalchanges = pd.DataFrame(connection.parsed_data, columns=['CVR', "Date", "CapitalPostInvestment", "InvestmentDKK", "PaymentType", "Rate"]).to_csv(args.table_folder + "/CapitalChanges" + f'/chunk{i}.csv')
+ 
+        end_time = time.time()
+        print("Time elapsed fetching and saving 10k results: ", end_time - start_time)
+
+        time.sleep(10)
 
 else:
     raise ValueError('Invalid query type')

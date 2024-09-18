@@ -48,8 +48,6 @@ def xbrl_reports_query(date_start, date_end, result_size=100) -> dict:
     return xbrl_reports
 
 
-
-
 def cvr_query(cvr_list, result_size=100) -> dict:
     """
     Query to fetch all entries matching a list of CVR numbers.
@@ -60,4 +58,25 @@ def cvr_query(cvr_list, result_size=100) -> dict:
         "query":{"terms":{"Vrvirksomhed.cvrNummer": cvr_list}},
         "size": result_size
     }
+    return query
+
+
+def capital_changes_query(cvr_list, result_size=100) -> dict:
+    query = {
+        "query": {
+            "bool": {
+                "must": [{
+                    "terms": {"cvrNummer": cvr_list}
+                }],
+                "filter": {
+                    "query_string": {
+                        "default_field": "virksomhedsregistreringstatusser.keyword",
+                        "query": "AENDRING_KAPITAL"
+                        }
+                    }
+                }
+            },
+        "size": result_size
+        }
+
     return query

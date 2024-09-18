@@ -142,7 +142,7 @@ class VirkResult():
         for attribute in hit['Vrvirksomhed']['attributter']:
             if attribute['type'] == 'KAPITAL':
                 for values in attribute['vaerdier']:
-                    new_value = float(values['vaerdi'])
+                    new_value = float(values['vaerdi'].replace(',',''))
                     from_date = values['periode']['gyldigFra']
                     lines.append([cvr, from_date, 'Capital', new_value])
         return lines
@@ -344,7 +344,10 @@ class VirkResult():
                                 relationtype = "EJERANDEL"
                                 
                                 #equity
-                                equity = float(value['vaerdi'].replace(',','.'))
+                                try:
+                                    equity = float(value['vaerdi'].replace(',','.'))
+                                except:
+                                    equity = None
                                 
                                 #call participant parser for owners
                                 lines_hit += self.add_participant(entity, value, cvr, relationtype, equity)

@@ -51,6 +51,13 @@ class VirkConnection():
                 self.parsed_data[4] += result[4] # participants
 
                 del result
+
+                
+        elif self.endpoint == 'registreringstekster/registreringstekst':
+            self.parsed_data = []
+            for hit_list in self.data:
+                self.parsed_data += hit_list.parse(endpoint=self.endpoint)
+            
         else:
             raise NotImplementedError('Parsing for this endpoint is not implemented yet.')
 
