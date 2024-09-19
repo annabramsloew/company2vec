@@ -264,7 +264,7 @@ class VirkResult():
 
     def company_info(self, hit, cvr) -> list:
         """ Fetches all the latest company information for a given company hit.
-        Returns a list of lists with values: CVR, Name, StartDate, EndDate, CompanyType, CompanyTypeCode, ProductionUnits, ZipCode, Industry, IndustryCode, Status"""
+        Returns a list of lists with values: CVR, Name, StartDate, EndDate, CompanyType, CompanyTypeCode, ProductionUnits, MunicipalityCode, Industry, IndustryCode, Status"""
 
         try:
             name = hit['Vrvirksomhed']['virksomhedMetadata']['nyesteNavn']['navn']
@@ -273,18 +273,18 @@ class VirkResult():
             company_type = hit['Vrvirksomhed']['virksomhedMetadata']['nyesteVirksomhedsform']['kortBeskrivelse']
             company_type_code = hit['Vrvirksomhed']['virksomhedMetadata']['nyesteVirksomhedsform']['virksomhedsformkode']
             p_units = int(hit['Vrvirksomhed']['virksomhedMetadata']['antalPenheder'])
-            zipcode = int(hit['Vrvirksomhed']['virksomhedMetadata']['nyesteBeliggenhedsadresse']['postnummer'])
+            municipality_code = int(hit['Vrvirksomhed']['virksomhedMetadata']['nyesteBeliggenhedsadresse']['kommune']['kommuneKode'])
             industry = hit['Vrvirksomhed']['virksomhedMetadata']['nyesteHovedbranche']['branchetekst']
             industry_code = int(hit['Vrvirksomhed']['virksomhedMetadata']['nyesteHovedbranche']['branchekode'])
             status = hit['Vrvirksomhed']['virksomhedMetadata']['sammensatStatus']
         except:
-            name, start_date, end_date, company_type, company_type_code, p_units, zipcode, industry, industry_code, status = None, None, None, None, None, None, None, None, None, None
+            name, start_date, end_date, company_type, company_type_code, p_units, municipality_code, industry, industry_code, status = None, None, None, None, None, None, None, None, None, None
             # save the hit as json for later inspection
             save_folder = r'/Users/nikolaibeckjensen/Desktop/inspections'
             with open(save_folder + f'/{cvr}.json', 'w') as f:
                 json.dump(hit, f)
 
-        return [[cvr, name, start_date, end_date, company_type, company_type_code, p_units, zipcode, industry, industry_code, status]]
+        return [[cvr, name, start_date, end_date, company_type, company_type_code, p_units, municipality_code, industry, industry_code, status]]
 
 
 
@@ -386,7 +386,7 @@ class VirkResult():
 
     def investments(self) -> list:
         """ Fetches all capital changes for a given company hit.
-        Returns a list of lists with values: CVR, Date, CapitalPostInvestment, InvestmentDKK, PaymentType, Rate
+        Returns a list of lists with values: CVR, Date, CapitalPostInvestment, InvestmentType, InvestmentDKK, PaymentType, Rate
         """
 
         lines = []
@@ -396,15 +396,16 @@ class VirkResult():
             cvr = hit["_source"]['cvrNummer']
 
             parsed_data = self.parse_text(text)
-            date = parsed_data['Date']
-            capital_post_investment = parsed_data['CapitalPostInvestment']
+            date = parsed_data['Date'] if 'Date' in parsed_data.keys() else None
+            capital_post_investment = parsed_data['CapitalPostInvestment'] if 'CapitalPostInvestment' in parsed_data.keys() else None
+            investmen_type = parsed_data['InvestmentType'] if 'InvestmentType' in parsed_data.keys() else None
 
             for i in range(len(parsed_data['Investments'])):
                 investment_dkk = parsed_data['Investments'][i]['InvestmentDKK']
                 payment_type = parsed_data['Investments'][i]['PaymentType']
                 rate = parsed_data['Investments'][i]['Rate']
 
-                lines.append([cvr, date, capital_post_investment, investment_dkk, payment_type, rate])
+                lines.append([cvr, date, capital_post_investment, investmen_type, investment_dkk, payment_type, rate])
         return lines
 
            

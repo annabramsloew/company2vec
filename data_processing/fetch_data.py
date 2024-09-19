@@ -131,7 +131,7 @@ elif args.query == 'cvr_tables':
         df_registrations = pd.DataFrame(connection.parsed_data[0], columns=['CVR', 'FromDate', 'ChangeType', 'NewValue']).to_csv(args.table_folder + "/Registrations" + f'/chunk{i}.csv')
         df_employees = pd.DataFrame(connection.parsed_data[1], columns=["CVR", "FromDate", "ChangeType", "EmployeeCounts"]).to_csv(args.table_folder + "/EmployeeCounts" + f'/chunk{i}.csv')
         df_production_units = pd.DataFrame(connection.parsed_data[2], columns=[ "CVR", "UnitNumber", "Date", "ChangeType"]).to_csv(args.table_folder + "/ProductionUnits" + f'/chunk{i}.csv')
-        df_company_info = pd.DataFrame(connection.parsed_data[3], columns=["CVR", "Name", "StartDate", "EndDate", "CompanyType", "CompanyTypeCode", "ProductionUnits", "ZipCode", "Industry", "IndustryCode", "Status"]).to_csv(args.table_folder + "/CompanyInfo" + f'/chunk{i}.csv')
+        df_company_info = pd.DataFrame(connection.parsed_data[3], columns=["CVR", "Name", "StartDate", "EndDate", "CompanyType", "CompanyTypeCode", "ProductionUnits", "MunicipalityCode", "Industry", "IndustryCode", "Status"]).to_csv(args.table_folder + "/CompanyInfo" + f'/chunk{i}.csv')
         df_participants = pd.DataFrame(connection.parsed_data[4], columns=['CVR','EntityID','Name', 'ParticipantType','RelationType', 'Participation', 'Date', 'EquityPct' ]).to_csv(args.table_folder + "/Participants" + f'/chunk{i}.csv')
         
         end_time = time.time()
@@ -264,7 +264,7 @@ elif args.query == 'capital_changes':
 
         # save the data
         print("Saving data")
-        df_capitalchanges = pd.DataFrame(connection.parsed_data, columns=['CVR', "Date", "CapitalPostInvestment", "InvestmentDKK", "PaymentType", "Rate"]).to_csv(args.table_folder + "/CapitalChanges" + f'/chunk{i}.csv')
+        df_capitalchanges = pd.DataFrame(connection.parsed_data, columns=['CVR', "Date", "CapitalPostInvestment", "InvestmentType", "InvestmentDKK", "PaymentType", "Rate"]).to_csv(args.table_folder + "/CapitalChanges" + f'/chunk{i}.csv')
  
         end_time = time.time()
         print("Time elapsed fetching and saving 10k results: ", end_time - start_time)
