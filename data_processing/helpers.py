@@ -55,7 +55,7 @@ def unique_cvr(xml_folder) -> list:
 # df_employee = pd.read_csv(r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables/EmployeeCounts/chunk0.csv', index_col=0)
 # df_registrations = pd.read_csv(r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables/Registrations/chunk0.csv', index_col=0)
 
-def enrich_with_asof_values(df, df_registrations, values=['Industry', 'CompanyType']) -> pd.DataFrame:
+def enrich_with_asof_values(df: pd.DataFrame, df_registrations: pd.DataFrame, values=['Industry', 'CompanyType', "Address", 'Status']) -> pd.DataFrame:
     """ Adds the as-of values of df_registrations for the entries in df.
     Currently relies on a CVR and FromDate column in both dataframes."""
 
@@ -65,16 +65,25 @@ def enrich_with_asof_values(df, df_registrations, values=['Industry', 'CompanyTy
         # load data
         df_value = df_registrations.loc[df_registrations['ChangeType'] == value].reset_index(drop=True)
 
-        # Convert the 'Date' columns to datetime for proper comparison
-        df['FromDate'] = pd.to_datetime(df['FromDate'])
-        df_value['FromDate'] = pd.to_datetime(df_value['FromDate'])
+        # Convert the 'Date' columns to datetime for proper comparison if they arent already datetime
+        if value == 'Status':
+            # replace nan values with 2000-01-01
+            df_value['FromDate'] = df_value['FromDate'].fillna('2000-01-01')
+
+        # convert to datetime
+        if df.FromDate.dtype != 'datetime64[ns]':
+            df['FromDate'] = pd.to_datetime(df['FromDate'])
+        if df_value.FromDate.dtype != 'datetime64[ns]':
+            df_value['FromDate'] = pd.to_datetime(df_value['FromDate'])
+        
+        # format columns
         df_value = df_value[['CVR', 'FromDate', 'NewValue']].rename(columns={'NewValue': value})
 
         df = pd.merge_asof(df.sort_values('FromDate'),
-                            df_value.sort_values('FromDate'),
-                            on='FromDate',
-                            by='CVR',
-                            direction='backward')
-        
+                    df_value.sort_values('FromDate'),
+                    on='FromDate',
+                    by='CVR',
+                    direction='backward')
+                
 
     return df
