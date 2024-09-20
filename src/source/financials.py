@@ -8,15 +8,14 @@ import dask.dataframe as dd
 import pandas as pd
 
 #from ..decorators import save_parquet
-#from ..ops import sort_partitions
+from ..ops import sort_partitions
 #from ..serialize import DATA_ROOT
-#from .base import FIELD_TYPE, TokenSource
+from .base import FIELD_TYPE, TokenSource, Binned
+from .source_helpers import dd_enrich_with_asof_values, convert_currency
 
 # TODO: MODIFY TO INSTEAD USE FINANCIAL DATA
 
-DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec" / "Tables"
-path_financials = DATA_ROOT / "Financials"
-path_registrations = DATA_ROOT / "Registrations"
+DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec"
 
 # ------------------------------------------ FIX IMPORTS ------------------------------------------
 @dataclass
@@ -30,11 +29,19 @@ class AnnualReportTokens(TokenSource):
 
     name: str = "financaial"
     fields: List[FIELD_TYPE] = field(
-        default_factory=lambda: ["COMPANY_TYPE", "INDUSTRY", "COMPANY_STATUS", "MUNICIPALITY"
-                                 "PROFITLOSS", "EQUITY", "ASSETS", "LIABILITIESANDEQUITY"]
+        default_factory=lambda: [
+            "COMPANY_TYPE", 
+            "INDUSTRY", 
+            "COMPANY_STATUS", 
+            "MUNICIPALITY",
+            Binned("PROFIT_LOSS", prefix="PROFIT_LOSS", n_bins=100),
+            Binned("EQUITY", prefix="EQUITY", n_bins=100),
+            Binned("ASSETS", prefix="ASSETS", n_bins=100),
+            Binned("LIABILITIES_AND_EQUITY", prefix="LIABILITIES_AND_EQUITY", n_bins=100)
+        ]
     )
 
-    input_csv: Path = DATA_ROOT / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec" / "Tables"
+    input_csv: Path = DATA_ROOT / "Tables"
     earliest_start: str = "01/01/2013"
 
     def _post_init__(self) -> None:
@@ -47,6 +54,7 @@ class AnnualReportTokens(TokenSource):
     )
     """
 
+    # ------------------------------------------ TODO FIX TOKENIZED ------------------------------------------
     def tokenized(self) -> dd.DataFrame:
         """
         Loads the indexed data, then tokenizes it.
@@ -77,10 +85,11 @@ class AnnualReportTokens(TokenSource):
         on_validation_error="recompute",
     )
     """
+    # ------------------------------------------ TODO FIX TOKENIZED ------------------------------------------
 
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
-        result = self.parsed().set_index("PERSON_ID")
+        result = self.parsed().set_index("CVR")
         assert isinstance(result, dd.DataFrame)
         return result
 
@@ -98,29 +107,52 @@ class AnnualReportTokens(TokenSource):
         next steps"""
 
         columns_registrations = [
-            "CVR",
-            "FromDate",
-            "ChangeType",
-            "NewValue"
+        "CVR",
+        "FromDate",
+        "ChangeType",
+        "NewValue"
         ]
 
         columns_annualreport = [
             "CVR",
             "PublicationDate",
+            "Currency",
             "ProfitLoss",
             "Equity", 
             "Assets", 
             "LiabilitiesAndEquity"
         ]
+
+        columns_currency = [
+        "year",
+        "month",
+        "from_currency",
+        "rate"
+        ]
+
+        output_columns = [
+        "START_DATE",
+        "CVR",
+        "PROFIT_LOSS",
+        "ASSETS",
+        "EQUITY",
+        "LIABILITIES_AND_EQUITY",
+        "INDUSTRY",
+        "COMPANY_TYPE",
+        "MUNICIPALITY",
+        "STATUS"
+        ]
         
         # Update the path to the data
         path_financials = self.input_csv / "Financials"
         path_registrations = self.input_csv  / "Registrations"
+        path_currency = self.input_csv / "Currency"
         
         # Load files
         financials_csv = [file for file in path_financials.iterdir() if file.is_file() and file.suffix == '.csv']
         registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv'] 
-        
+        currency_csv = [file for file in path_currency.iterdir() if file.is_file() and file.suffix == '.csv']
+
         # Load data
         ddf_registrations = dd.read_csv(
             registrations_csv,
@@ -144,15 +176,30 @@ class AnnualReportTokens(TokenSource):
             dtype={
                 "CVR": int,
                 "PublicationDate": str,
-                "ProfitLoss": float,  # Deal with missing values
+                "Currency": str,
+                "ProfitLoss": float,
                 "Equity": float,
                 "Assets": float,
                 "LiabilitiesAndEquity": float,
             },
             blocksize="256MB"
-            )
+        )
         
-        #enrich the annual report with asof values from the registrations
+        ddf_currency = dd.read_csv(
+            currency_csv,
+            usecols=columns_currency,
+            on_bad_lines="error",
+            assume_missing=True,
+            dtype={
+                "year": int,
+                "month": int,
+                "from_currency": str,
+                "rate": float
+            },
+            blocksize="256MB"
+        )
+        
+        # enrich the annual report with asof values from the registrations
         ddf = dd_enrich_with_asof_values(
             ddf_annualreport, 
             ddf_registrations, 
@@ -161,22 +208,23 @@ class AnnualReportTokens(TokenSource):
             date_col_registrations='FromDate'
             )
         
-        #nået hertil ----------------------------------------------------------
+        # convert currency
+        ddf = convert_currency(ddf, ddf_currency, 
+                        amount_cols=['ProfitLoss', 'Equity', 'Assets', 'LiabilitiesAndEquity'], 
+                        currency_col='Currency', 
+                        date_col='PublicationDate')
         
-        # Drop missing values and deal with datatypes
+        #drop currency column
+        ddf = ddf.drop(columns=['Currency'])
+
+        #save list of column names
+        columns = ddf.columns
+
+        # Drop values and rename columns
         ddf = (
-            ddf.dropna(subset=["PERSON_ID", "C_ADIAG"])
-            .assign(
-                PERSON_ID=lambda x: x.PERSON_ID.astype(int),
-                D_INDDTO=lambda x: dd.to_datetime(
-                    x.D_INDDTO,
-                    format="%d%b%Y:%X",
-                    errors="coerce",
-                ),
-            )
-            .rename(columns={"D_INDDTO": "START_DATE"})
+            ddf.rename(columns=dict(zip(columns, output_columns)))
             .loc[lambda x: x.START_DATE >= self.earliest_start]
-        )
+            )
 
         if self.downsample:
             ddf = self.downsample_persons(ddf)
