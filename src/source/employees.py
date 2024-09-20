@@ -127,8 +127,8 @@ class EmployeeTokens(TokenSource):
         return ddf
     
 
-# use for testing
-if __name__ == "__main__":
-    tokens = EmployeeTokens()
-    parsed_data = tokens.tokenized().compute()
+# use for debugging
+# if __name__ == "__main__":
+#     tokens = EmployeeTokens()
+#     parsed_data = tokens.tokenized().compute()
     
