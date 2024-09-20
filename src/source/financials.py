@@ -10,7 +10,7 @@ import pandas as pd
 #from ..decorators import save_parquet
 from ..ops import sort_partitions
 #from ..serialize import DATA_ROOT
-from .base import FIELD_TYPE, TokenSource
+from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import dd_enrich_with_asof_values, convert_currency
 
 # TODO: MODIFY TO INSTEAD USE FINANCIAL DATA
@@ -29,8 +29,16 @@ class AnnualReportTokens(TokenSource):
 
     name: str = "financaial"
     fields: List[FIELD_TYPE] = field(
-        default_factory=lambda: ["COMPANY_TYPE", "INDUSTRY", "COMPANY_STATUS", "MUNICIPALITY"
-                                 "PROFITLOSS", "EQUITY", "ASSETS", "LIABILITIESANDEQUITY"]
+        default_factory=lambda: [
+            "COMPANY_TYPE", 
+            "INDUSTRY", 
+            "COMPANY_STATUS", 
+            "MUNICIPALITY",
+            Binned("PROFIT_LOSS", prefix="PROFIT_LOSS", n_bins=100),
+            Binned("EQUITY", prefix="EQUITY", n_bins=100),
+            Binned("ASSETS", prefix="ASSETS", n_bins=100),
+            Binned("LIABILITIES_AND_EQUITY", prefix="LIABILITIES_AND_EQUITY", n_bins=100)
+        ]
     )
 
     input_csv: Path = DATA_ROOT / "Tables"
@@ -46,6 +54,7 @@ class AnnualReportTokens(TokenSource):
     )
     """
 
+    # ------------------------------------------ TODO FIX TOKENIZED ------------------------------------------
     def tokenized(self) -> dd.DataFrame:
         """
         Loads the indexed data, then tokenizes it.
@@ -76,10 +85,11 @@ class AnnualReportTokens(TokenSource):
         on_validation_error="recompute",
     )
     """
+    # ------------------------------------------ TODO FIX TOKENIZED ------------------------------------------
 
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
-        result = self.parsed().set_index("PERSON_ID")
+        result = self.parsed().set_index("CVR")
         assert isinstance(result, dd.DataFrame)
         return result
 
@@ -125,7 +135,7 @@ class AnnualReportTokens(TokenSource):
         "CVR",
         "PROFIT_LOSS",
         "ASSETS",
-        "EQUTY",
+        "EQUITY",
         "LIABILITIES_AND_EQUITY",
         "INDUSTRY",
         "COMPANY_TYPE",
