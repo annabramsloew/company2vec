@@ -7,36 +7,46 @@ from typing import List
 import dask.dataframe as dd
 import pandas as pd
 
-from ..decorators import save_parquet
-from ..ops import sort_partitions
-from ..serialize import DATA_ROOT
-from .base import FIELD_TYPE, TokenSource
+#from ..decorators import save_parquet
+#from ..ops import sort_partitions
+#from ..serialize import DATA_ROOT
+#from .base import FIELD_TYPE, TokenSource
 
 # TODO: MODIFY TO INSTEAD USE FINANCIAL DATA
+
+DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec" / "Tables"
+path_financials = DATA_ROOT / "Financials"
+path_registrations = DATA_ROOT / "Registrations"
+
+# ------------------------------------------ FIX IMPORTS ------------------------------------------
 @dataclass
 class AnnualReportTokens(TokenSource):
-    """This generates tokens based on information from the LPR dataset.
-    Currently loads data from a CSV dump of LPR.
+    """This generates tokens based on information from the annual reports dataset.
+    Currently loads data from a CSV dump of the annual reports.
 
     :param input_csv: CSV file from which to load the LPR dataset.
     :param earliest_start: The earliest start date of a hospital encounter.
     """
 
-    name: str = "health"
+    name: str = "financaial"
     fields: List[FIELD_TYPE] = field(
-        default_factory=lambda: ["C_ADIAG", "C_INDM", "C_PATTYPE"]
+        default_factory=lambda: ["COMPANY_TYPE", "INDUSTRY", "COMPANY_STATUS", "MUNICIPALITY"
+                                 "PROFITLOSS", "EQUITY", "ASSETS", "LIABILITIESANDEQUITY"]
     )
 
-    input_csv: Path = DATA_ROOT / "rawdata" / "health" / "LPRADM.csv"
-    earliest_start: str = "01/01/2008"
+    input_csv: Path = DATA_ROOT / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec" / "Tables"
+    earliest_start: str = "01/01/2013"
 
     def _post_init__(self) -> None:
         self._earliest_start = pd.to_datetime(self.earliest_start)
 
+    """
     @save_parquet(
         DATA_ROOT / "processed/sources/{self.name}/tokenized",
         on_validation_error="error",
     )
+    """
+
     def tokenized(self) -> dd.DataFrame:
         """
         Loads the indexed data, then tokenizes it.
@@ -61,10 +71,12 @@ class AnnualReportTokens(TokenSource):
         assert isinstance(result, dd.DataFrame)
         return result
 
+    """
     @save_parquet(
         DATA_ROOT / "interim/sources/{self.name}/indexed",
         on_validation_error="recompute",
     )
+    """
 
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
@@ -72,39 +84,85 @@ class AnnualReportTokens(TokenSource):
         assert isinstance(result, dd.DataFrame)
         return result
 
+    """
     @save_parquet(
         DATA_ROOT / "interim/sources/{self.name}/parsed",
         on_validation_error="error",
         verify_index=False,
     )
+    """
+
     def parsed(self) -> dd.DataFrame:
         """Parses the CSV file, applies some basic filtering, then saves the result
         as compressed parquet file, as this is easier to parse than the CSV for the
         next steps"""
 
-        columns = [
-            "PERSON_ID",
-            "C_PATTYPE",
-            "C_ADIAG",
-            "C_INDM",
-            "D_INDDTO",
+        columns_registrations = [
+            "CVR",
+            "FromDate",
+            "ChangeType",
+            "NewValue"
         ]
 
-        ddf = dd.read_csv(
-            self.input_csv,
-            low_memory=False,
-            usecols=columns,
+        columns_annualreport = [
+            "CVR",
+            "PublicationDate",
+            "ProfitLoss",
+            "Equity", 
+            "Assets", 
+            "LiabilitiesAndEquity"
+        ]
+        
+        # Update the path to the data
+        path_financials = self.input_csv / "Financials"
+        path_registrations = self.input_csv  / "Registrations"
+        
+        # Load files
+        financials_csv = [file for file in path_financials.iterdir() if file.is_file() and file.suffix == '.csv']
+        registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv'] 
+        
+        # Load data
+        ddf_registrations = dd.read_csv(
+            registrations_csv,
+            usecols=columns_registrations,
             on_bad_lines="error",
             assume_missing=True,
             dtype={
-                "PERSON_ID": float,  # Deal with missing values
-                "C_ADIAG": "string",
-                "C_INDM": "string",
-                "C_PATTYPE": "string",
+                "CVR": int,
+                "FromDate": str,
+                "ChangeType": str,
+                "NewValue": str
             },
-            blocksize="256MB",
+            blocksize="256MB"
         )
-
+        
+        ddf_annualreport = dd.read_csv(
+            financials_csv,
+            usecols=columns_annualreport,
+            on_bad_lines="error",
+            assume_missing=True,
+            dtype={
+                "CVR": int,
+                "PublicationDate": str,
+                "ProfitLoss": float,  # Deal with missing values
+                "Equity": float,
+                "Assets": float,
+                "LiabilitiesAndEquity": float,
+            },
+            blocksize="256MB"
+            )
+        
+        #enrich the annual report with asof values from the registrations
+        ddf = dd_enrich_with_asof_values(
+            ddf_annualreport, 
+            ddf_registrations, 
+            values=['Industry', 'CompanyType', 'Address', 'Status'], 
+            date_col_df='PublicationDate', 
+            date_col_registrations='FromDate'
+            )
+        
+        #nået hertil ----------------------------------------------------------
+        
         # Drop missing values and deal with datatypes
         ddf = (
             ddf.dropna(subset=["PERSON_ID", "C_ADIAG"])
