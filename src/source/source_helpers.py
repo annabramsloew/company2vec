@@ -9,6 +9,7 @@ def enrich_with_asof_values(df: pd.DataFrame, df_registrations: pd.DataFrame, va
     """ Adds the as-of values of df_registrations for the entries in df.
     Currently relies on a CVR and FromDate column in both dataframes."""
 
+    filters = {'CompanyType' : ['A/S', 'ApS', 'IVS']}
 
     for value in values:
         
@@ -19,6 +20,10 @@ def enrich_with_asof_values(df: pd.DataFrame, df_registrations: pd.DataFrame, va
         if value == 'Status':
             # replace nan values with 2000-01-01
             df_value['FromDate'] = df_value['FromDate'].fillna('2000-01-01')
+
+
+        if value in filters:
+            df_value = df_value.loc[df_value['NewValue'].isin(filters[value])]    
 
         # convert to datetime
         if df.FromDate.dtype != 'datetime64[ns]':
