@@ -20,10 +20,10 @@ DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk
 # ------------------------------------------ FIX IMPORTS ------------------------------------------
 @dataclass
 class AnnualReportTokens(TokenSource):
-    """This generates tokens based on information from the annual reports dataset.
+    """This generates tokens based on information from the annual reports, registrations and currency datasets.
     Currently loads data from a CSV dump of the annual reports.
 
-    :param input_csv: CSV file from which to load the LPR dataset.
+    :param input_csv: path to the Tables folder, from which data on registrations, currency rates and annual reports may be fetched.
     :param earliest_start: The earliest start date of a hospital encounter.
     """
 
@@ -214,17 +214,12 @@ class AnnualReportTokens(TokenSource):
                         currency_col='Currency', 
                         date_col='PublicationDate')
         
-        #drop currency column
-        ddf = ddf.drop(columns=['Currency'])
-
-        #save list of column names
-        columns = ddf.columns
-
-        # Drop values and rename columns
+        # Drop 'Currency' column, rename columns, and drop values
         ddf = (
-            ddf.rename(columns=dict(zip(columns, output_columns)))
+            ddf.drop(columns=['Currency'])
+            .pipe(lambda df: df.rename(columns=dict(zip(df.columns, output_columns))))
             .loc[lambda x: x.START_DATE >= self.earliest_start]
-            )
+        )
 
         if self.downsample:
             ddf = self.downsample_persons(ddf)
