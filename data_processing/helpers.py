@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import dask.dataframe as dd
 
 def date_chunks(date_start, date_end, days_per_query) -> list:
     """
@@ -49,41 +50,3 @@ def unique_cvr(xml_folder) -> list:
             unique_cvr.update(cvr_list)
     
     return list(unique_cvr)
-
-
-#
-# df_employee = pd.read_csv(r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables/EmployeeCounts/chunk0.csv', index_col=0)
-# df_registrations = pd.read_csv(r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables/Registrations/chunk0.csv', index_col=0)
-
-def enrich_with_asof_values(df: pd.DataFrame, df_registrations: pd.DataFrame, values=['Industry', 'CompanyType', "Address", 'Status']) -> pd.DataFrame:
-    """ Adds the as-of values of df_registrations for the entries in df.
-    Currently relies on a CVR and FromDate column in both dataframes."""
-
-
-    for value in values:
-        
-        # load data
-        df_value = df_registrations.loc[df_registrations['ChangeType'] == value].reset_index(drop=True)
-
-        # Convert the 'Date' columns to datetime for proper comparison if they arent already datetime
-        if value == 'Status':
-            # replace nan values with 2000-01-01
-            df_value['FromDate'] = df_value['FromDate'].fillna('2000-01-01')
-
-        # convert to datetime
-        if df.FromDate.dtype != 'datetime64[ns]':
-            df['FromDate'] = pd.to_datetime(df['FromDate'])
-        if df_value.FromDate.dtype != 'datetime64[ns]':
-            df_value['FromDate'] = pd.to_datetime(df_value['FromDate'])
-        
-        # format columns
-        df_value = df_value[['CVR', 'FromDate', 'NewValue']].rename(columns={'NewValue': value})
-
-        df = pd.merge_asof(df.sort_values('FromDate'),
-                    df_value.sort_values('FromDate'),
-                    on='FromDate',
-                    by='CVR',
-                    direction='backward')
-                
-
-    return df

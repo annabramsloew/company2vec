@@ -128,13 +128,13 @@ class TokenSource:
         Method to deliver the tokenized data. Should return a
         :class:`dask.dataframe.DataFrame` object.
 
-        The dataframe should be indexed by PERSON_ID, have a datetime column called
+        The dataframe should be indexed by CVR, have a datetime column called
         "START_DATE", as well as a column for each field in :attr:`self.fields`
         containing the tokenized data.
         The tokenized data should be strings (or *known* categoricals, see :mod:`dask`
         documentation). They can be NA in which case they are omitted from the final
         sentence.
-        For each PERSON_ID, the observations should be sorted by START_DATE.
+        For each CVR, the observations should be sorted by START_DATE.
 
         Since further proccesing will be done with this dataframe, I recommend against
         returning dataframes containg large unevaluated computational graphs. This can
@@ -146,12 +146,12 @@ class TokenSource:
 
             A :class:`dask.dataframe.DataFrame` object with the following columns:
 
-            * PERSON_ID (Index column) - The person ids.
+            * CVR (Index column) - The company's ids.
 
             * START_DATE - The date for the event that the tokens describe
 
             * AGE (Optional) - If supplied, this age will be used instead of the age
-              calculated based on the birthday.
+              calculated based on company start date.
 
             * Token columns - A column for each of the fields in :attr:`self.fields`
 
