@@ -81,3 +81,51 @@ def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame,
         )
 
     return df
+
+def convert_currency( df: dd.DataFrame, lookup_table: dd.DataFrame, 
+                     amount_cols=['amount'],  # List of columns to convert
+                     currency_col='currency', 
+                     date_col='PublicationDate',  # The datetime column in df
+                     ) -> dd.DataFrame:
+    """
+    Convert multiple currency columns in the DataFrame based on a lookup table for rows where currency is not 'DKK'.
+    
+    Args:
+        df (dd.DataFrame): The main dataframe with amounts to convert.
+        lookup_table (dd.DataFrame): The lookup table containing conversion rates.
+        amount_cols (list): List of column names in df containing amounts to be converted.
+        currency_col (str): Column name in df containing currency information.
+        date_col (str): Column name for datetime in df to extract year and month from.
+    
+    Returns:
+        dd.DataFrame: DataFrame with currency conversion applied to the specified amount columns.
+    """
+
+    # 1. Filter rows where the currency is not 'DKK'
+    non_dkk_df = df[df[currency_col] != 'DKK']
+    dkk_df = df[df[currency_col] == 'DKK']  # Keep these rows unchanged
+
+    # 2. Extract year and month from the PublicationDate column
+    non_dkk_df['year'] = non_dkk_df[date_col].dt.year
+    non_dkk_df['month'] = non_dkk_df[date_col].dt.month
+
+    # 3. Perform a join to find the correct rate for each non-DKK row
+    merged_df = dd.merge(
+        non_dkk_df,
+        lookup_table,
+        left_on=[currency_col, 'year', 'month'],
+        right_on=['from_currency', 'year', 'month'],
+        how='left'
+    )
+
+    # 4. Apply currency conversion for each amount column
+    for col in amount_cols:
+        merged_df[col] = merged_df[col] * merged_df['rate']
+
+    # 5. Drop unnecessary columns (from the lookup table like 'rate', 'from_currency')
+    merged_df = merged_df.drop(columns=['rate', 'from_currency', 'year', 'month'])
+
+    # 6. Concatenate the DKK and non-DKK dataframes
+    final_df = dd.concat([dkk_df, merged_df])
+
+    return final_df
