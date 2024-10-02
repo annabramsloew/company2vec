@@ -11,28 +11,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set(style="whitegrid")
 
-#load data from xml_links folder
-
-# SET YOUR PATH HERE
-#main_path = r'/Users/annabramslow/Library/CloudStorage/Dropbox/DTU/Virk2Vec/xml_links/'
-
-#load data from xml_links folder
-def load_data(main_path):
-    data = pd.DataFrame(columns=['CVR', 'PublicationDate', 'UrlXML'])
-    for i in range(2013, 2024):
-        path = main_path + str(i) + '.csv'
-        print(path)
-        df = pd.read_csv(path, index_col=0)
-        data = pd.concat([data, df])
-
-    #find out number of CVR with value counts >= 5
-    cvr_counts = data['CVR'].value_counts()
-    cvr_counts = cvr_counts[cvr_counts >= 5]
-    data = data[data['CVR'].isin(cvr_counts)]
-
-    return data
-
-
 # ----------------------------- HELPER FUNCTIONS ----------------------------- #
 #parse xml data from url
 def parse_xml(url, timeout=10):
