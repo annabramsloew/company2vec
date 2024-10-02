@@ -13,8 +13,6 @@ from ..ops import sort_partitions
 from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import dd_enrich_with_asof_values, convert_currency
 
-# TODO: MODIFY TO INSTEAD USE FINANCIAL DATA
-
 DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec"
 
 # ------------------------------------------ FIX IMPORTS ------------------------------------------
