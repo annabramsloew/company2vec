@@ -13,7 +13,6 @@ from ..ops import sort_partitions
 from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import dd_enrich_with_asof_values, convert_currency
 
-# TODO: MODIFY TO INSTEAD USE FINANCIAL DATA
 
 DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec"
 
@@ -33,7 +32,7 @@ class AnnualReportTokens(TokenSource):
             "COMPANY_TYPE", 
             "INDUSTRY", 
             "COMPANY_STATUS", 
-            "MUNICIPALITY",
+            "ADDRESS", #TODO: Change
             Binned("PROFIT_LOSS", prefix="PROFIT_LOSS", n_bins=100),
             Binned("EQUITY", prefix="EQUITY", n_bins=100),
             Binned("ASSETS", prefix="ASSETS", n_bins=100),
@@ -41,7 +40,7 @@ class AnnualReportTokens(TokenSource):
         ]
     )
 
-    input_csv: Path = DATA_ROOT / "Tables"
+    input_csv: Path =  Path(r"/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables") #TODO: Change back to relative import DATA_ROOT / "Tables"
     earliest_start: str = "01/01/2013"
 
     def _post_init__(self) -> None:
@@ -58,26 +57,24 @@ class AnnualReportTokens(TokenSource):
     def tokenized(self) -> dd.DataFrame:
         """
         Loads the indexed data, then tokenizes it.
-        Clamps the C_ADIAG field, and converts C_INDM and C_PATTYPE to strings.
         """
 
         result = (
             self.indexed()
             .assign(
-                C_ADIAG=lambda x: x.C_ADIAG.str[1:4],
-                C_INDM=lambda x: x.C_INDM.map(
-                    {"1": "URGENT", "2": "NON_URGENT"}
-                ).astype("string"),
-                C_PATTYPE=lambda x: x.C_PATTYPE.map(
-                    {"0": "INPAT", "2": "OUTPAT", "3": "EMERGENCY"}
-                ).astype("string"),
+                COMPANY_TYPE=lambda x: "CTYP_" + x.COMPANY_TYPE.map({"A/S": "AS", 
+                                                                     "ApS": "APS", 
+                                                                     "IVS": "IVS"}),
+                INDUSTRY=lambda x: "IND_" + x.INDUSTRY, 
+                COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS, #TODO: Define status mapping
+                ADDRESS=lambda x: "WMUN_" + x.ADDRESS, #TODO: Change
             )
-            .pipe(sort_partitions, columns=["START_DATE"])[
-                ["START_DATE", *self.field_labels()]
-            ]
+            .pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
+
         assert isinstance(result, dd.DataFrame)
         return result
+
 
     """
     @save_parquet(
@@ -140,7 +137,7 @@ class AnnualReportTokens(TokenSource):
         "INDUSTRY",
         "COMPANY_TYPE",
         "MUNICIPALITY",
-        "STATUS"
+        "COMPANY_STATUS"
         ]
         
         # Update the path to the data
@@ -150,6 +147,7 @@ class AnnualReportTokens(TokenSource):
         
         # Load files
         financials_csv = [file for file in path_financials.iterdir() if file.is_file() and file.suffix == '.csv']
+        financials_csv = [financials_csv[0]]
         registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv'] 
         currency_csv = [file for file in path_currency.iterdir() if file.is_file() and file.suffix == '.csv']
 
@@ -227,3 +225,10 @@ class AnnualReportTokens(TokenSource):
         assert isinstance(ddf, dd.DataFrame)
 
         return ddf
+    
+
+# use for debugging
+if __name__ == "__main__":
+    tokens = AnnualReportTokens()
+    parsed_data = tokens.tokenized().compute()
+    

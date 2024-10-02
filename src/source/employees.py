@@ -46,7 +46,6 @@ class EmployeeTokens(TokenSource):
     def tokenized(self) -> dd.DataFrame:
         """
         Loads the indexed data, then tokenizes it.
-        Clamps the C_ADIAG field, and converts C_INDM and C_PATTYPE to strings.
         """
 
         result = (
@@ -56,8 +55,8 @@ class EmployeeTokens(TokenSource):
                                                                      "ApS": "APS", 
                                                                      "IVS": "IVS"}),
                 INDUSTRY=lambda x: "IND_" + x.INDUSTRY, 
-                COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS #TODO: Define status mapping
-                #TODO: #WORK_MUNICIPALITY=lambda x: "WMUN_" + x.WORK_MUNICIPALITY,
+                COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS, #TODO: Define status mapping
+                ADDRESS=lambda x: "WMUN_" + x.ADDRESS, #TODO: Change
             )
             .pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
