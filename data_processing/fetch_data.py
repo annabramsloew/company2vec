@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import time
 from VirkConnection import VirkConnection
-from queries import xbrl_reports_query, cvr_query, capital_changes_query
+from queries import xbrl_reports_query, cvr_query, capital_changes_query, punit_query
 from helpers import date_chunks, unique_cvr
 from xml_parser import fetch_financials
 import datetime as dt
@@ -139,6 +139,46 @@ elif args.query == 'cvr_tables':
 
         time.sleep(10)
 
+
+elif args.query == 'enrich_punits': #args = table_folder
+
+    # iterate through each chunk of production units
+    files = os.listdir(args.table_folder + "/ProductionUnits")
+    for file in files:
+        if file.endswith(".csv"):
+            print("Loading data from: ", file)
+            df = pd.read_csv(args.table_folder + "/ProductionUnits/" + file, index_col=0)
+            print("Data loaded")
+
+            # fetch the relevant cvr numbers
+            punit_list = df['UnitNumber'].unique()
+            print("CVR list length: ", len(punit_list))
+
+            # create the query
+            query = punit_query(punit_list, result_size=1000)
+
+            connection = VirkConnection(
+                    credentials = credentials,
+                    query = query,
+                    endpoint = r"cvr-permanent/produktionsenhed",  
+                    MAX_ITERATIONS = 100
+                ) 
+            connection.execute_query()
+            print("Query executed")
+            connection.parse_results()
+            print("Data parsed")
+
+            #TODO: Define parser
+            #TODO: Join with the original df
+
+            # save the data
+            print("Saving data")
+            df_punits = pd.DataFrame(connection.parsed_data, columns=["CVR", "UnitNumber", "Municipality", "Industry"]).to_csv(args.table_folder + "/ProductionUnits" + f'/{file}')
+            print("Data saved")
+
+            time.sleep(10)
+
+    pass
 
 
 
