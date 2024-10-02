@@ -13,8 +13,6 @@ from ..ops import sort_partitions
 from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import dd_enrich_with_asof_values, convert_currency
 
-# TODO: MODIFY TO INSTEAD USE FINANCIAL DATA
-
 DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec"
 
 # ------------------------------------------ FIX IMPORTS ------------------------------------------
@@ -117,7 +115,6 @@ class AnnualReportTokens(TokenSource):
             "PAYMENT_TYPE",
             "RATE",
             "INVESTMENT"
-            #"INVESTMENT_TYPE"
             ]
 
         # Update the path to the data
@@ -144,11 +141,12 @@ class AnnualReportTokens(TokenSource):
             lineterminator='\n'
         )
         
-        # Handle data types and compute total investment    
+        # Handle data types and compute total investment, multiply by -1 if 'InvestmentType' is 'decrease'   
         ddf = (ddf_capital
             .assign(Date=lambda df: dd.to_datetime(df["Date"], errors='coerce', format='%d-%m-%Y'))
             .assign(Investment=lambda df: df["InvestmentDKK"] * (df["Rate"] / 100))
-            .drop(columns=['InvestmentDKK'])
+            #.assign(Investment=lambda df: df["Investment"] * df["InvestmentType"].map({'decrease': -1}).fillna(1))
+            .drop(columns=['InvestmentDKK'])#,'InvestmentType'])
         )
 
         # Filter out data and rename columns
