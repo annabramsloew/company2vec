@@ -196,8 +196,15 @@ elif args.query == 'xbrl_parser':
     print("Filtering data")
     # filter out CVR numbers with less than 5 reports
     cvr_counts = data['CVR'].value_counts()
-    cvr_counts = cvr_counts[cvr_counts >= 5].index
-    data = data[data['CVR'].isin(cvr_counts)]
+    cvr_counts_5 = cvr_counts[cvr_counts >= 5].index
+    data_5 = data[data['CVR'].isin(cvr_counts_5)]
+
+    # add CVR numbers with between 2 and 5 reports
+    cvr_counts_2 = cvr_counts[(cvr_counts >= 2) & (cvr_counts < 5)].index
+    data_2 = data[data['CVR'].isin(cvr_counts_2)]
+
+    data = pd.concat([data_5, data_2])
+
     del cvr_counts
 
     selected_keys = ['GrossProfitLoss', 'EmployeeBenefitsExpense', 'WagesAndSalaries', 'ProfitLoss', 'OtherFinanceIncome','OtherFinanceExpenses',
