@@ -80,3 +80,16 @@ def capital_changes_query(cvr_list, result_size=100) -> dict:
         }
 
     return query
+
+
+def punit_query(punit_list, result_size) -> dict:
+    """
+    Query to fetch all entries matching a list of production units.
+    :param punit_list: list[str], the production unit number to fetch
+    """
+
+    query = {
+        "query":{"terms":{"VrproduktionsEnhed.pNummer": punit_list}},
+        "size": result_size 
+    }
+    return query

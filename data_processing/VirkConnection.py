@@ -13,7 +13,7 @@ class VirkConnection():
         """
         :param credentials: dict, containing the user and password for the API
         :param query: dict, containing the query to be executed 
-        :param endpoint: str, the endpoint to be queried (either "cvr-permanent/virksomhed", "registreringstekster/registreringstekst" or "offentliggoerelser")
+        :param endpoint: str, the endpoint to be queried (either "cvr-permanent/virksomhed", "cvr-permanent/produktionsenhed", "registreringstekster/registreringstekst" or "offentliggoerelser")
         """
 
         self.credentials: dict = credentials
@@ -27,7 +27,7 @@ class VirkConnection():
         self.active_connection: bool = False
         self.data: list[VirkResult] = []
         self.parsed_data: list = None
-        assert endpoint in ["cvr-permanent/virksomhed", "registreringstekster/registreringstekst", "offentliggoerelser"], "Invalid endpoint"
+        assert endpoint in ["cvr-permanent/virksomhed", "cvr-permanent/produktionsenhed", "registreringstekster/registreringstekst", "offentliggoerelser"], "Invalid endpoint"
 
 
     def parse_results(self):
@@ -57,7 +57,14 @@ class VirkConnection():
             self.parsed_data = []
             for hit_list in self.data:
                 self.parsed_data += hit_list.parse(endpoint=self.endpoint)
-            
+        
+
+        elif self.endpoint == 'cvr-permanent/produktionsenhed':
+            # return pandas dataframe with columns [pNummer, Municipality, Industry]
+            self.parsed_data = []
+            for hit_list in self.data:
+                self.parsed_data += hit_list.parse(endpoint=self.endpoint)
+                
         else:
             raise NotImplementedError('Parsing for this endpoint is not implemented yet.')
 

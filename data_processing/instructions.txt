@@ -5,37 +5,47 @@ Note: Before doing so, one must acquire API key credentials by reaching out to E
 
 **Step 1: Fetching Annual Reports**
 - Use the following command line call to fetch all published xml links of annual reports within a time period.
-- The function has been called for each year 2013-2023 (example of 2013 below)
+- The function has been called for each year 2013-2023 (example of 2013 below). This is a necessary measure to not respect guidelines for fetching data from the Virk API. 
 - Each call saves a csv file into 'local_save_path'
 
-# command line call:
+command line call:
 python fetch_data.py --query="xml_reports" --query_date_start="2013-01-01" --query_date_end="2013-12-31" --days_per_query=30 --virk_credentials_path="/Desktop/credentials.json" --local_save_path="/Desktop/xml_links/2013.csv"
 
 
 
-**Step 2: Fetching Company Data**
+**Step 2 (a): Fetching Company Data**
 - Use the following command line call to fetch all relevant company data
 - Specify the folder where you stored results from Step 1 in the argument 'xml_reports_folder'
 - Additionally, the user must specify a 'table_folder', which contains subfolders with the names  CompanyInfo, EmployeeCounts, Participants, ProductionUnits, Registrations and Financials.
 - The function will filter the relevant CVR numbers from the xml links and query the relevant APIs to populate the subfolder tables.
 
-# command line call:
+command line call:
 python fetch_data.py --query="cvr_tables" --xml_reports_folder="/Desktop/xml_links" --virk_credentials_path="/Desktop/credentials.json" --table_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables" --overwrite="False"
 
 
 
-**Step 3: Fetching Financial Data
+**Step 2 (b): Enrich Production Unit Data**
+- use the following command to enrich production unit data with industry type and municipality. 
+- this is necessary as it requires calling a separate API.
+
+command line call
+python fetch_data.py --query="enrich_punits"  --virk_credentials_path="/Desktop/credentials.json" --table_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables" 
+
+
+
+
+**Step 4: Fetching Financial Data
 -use the following command line call to fetch and parse all xml financial reports in the xml_reports folder
 
-# command line call:
+command line call:
 python fetch_data.py --query="xbrl_parser" --xml_reports_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/xml_links" --table_folder="/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables" --overwrite="False" --chunk_size=10000
 
 
 
-**Step 4: Fetching Investment/Changes in capital structure
+**Step 5: Fetching Investment/Changes in capital structure
 - use the following command line call to fetch all capital changes for the companies with xml-reports. (ie. investment of X DKK paid (in cash/debt/valuables) at rate YYY)
 
-# command line call:
+command line call:
 python fetch_data.py --query="capital_changes" --xml_reports_folder="/Desktop/xml_links" --virk_credentials_path="/Desktop/credentials.json" --table_folder="/Desktop/Tables" --overwrite="False"
 
 

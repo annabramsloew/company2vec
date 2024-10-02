@@ -42,6 +42,11 @@ class VirkResult():
         elif endpoint == 'registreringstekster/registreringstekst':
             return self.investments()
         
+        elif endpoint == 'cvr-permanent/produktionsenhed':
+            return self.enriched_production_units()
+            return lines
+
+
         else:
             raise NotImplementedError('Parsing for this endpoint is not implemented yet.')
 
@@ -244,6 +249,36 @@ class VirkResult():
 
         return lines
     
+
+    def enriched_production_units(self) -> list:
+        """ Fetches the relevant municipality and industry data for the production units in a given production unit hit.
+        Returns a list with values:  UnitNumber, Municipality, Industry
+        """
+        lines = []
+        for hit in self.hit_list:
+            p = hit['_source']['VrproduktionsEnhed']
+
+            try:
+                punit = p['pNummer']
+            except:
+                punit = None
+            
+            
+            try:
+                municipality = str(int(p['beliggenhedsadresse'][0]['kommune']['kommuneKode']))
+            except: 
+                municipality = None
+            
+            try:
+                industry = p['hovedbranche'][0]['branchekode']
+            except:
+                industry = None
+            
+
+            lines.append([punit, municipality, industry])
+        return lines
+
+
     def xml_reports(self) -> list:
         """ Fetches the CVR, PublicationDate and XML URL for all entries in a given financial API hit.
         Returns a list of lists with values in the following order: CVR, PublicationDate, UrlXML,

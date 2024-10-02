@@ -151,7 +151,7 @@ elif args.query == 'enrich_punits': #args = table_folder
             print("Data loaded")
 
             # fetch the relevant cvr numbers
-            punit_list = df['UnitNumber'].unique()
+            punit_list = df['UnitNumber'].unique().tolist()
             print("CVR list length: ", len(punit_list))
 
             # create the query
@@ -168,17 +168,19 @@ elif args.query == 'enrich_punits': #args = table_folder
             connection.parse_results()
             print("Data parsed")
 
-            #TODO: Define parser
-            #TODO: Join with the original df
-
+            #Join with the original df
+            df_new_cols = pd.DataFrame(connection.parsed_data, columns = ["UnitNumber", "Municipality", "Industry"])
+            df_enriched = pd.merge(df, df_new_cols, on="UnitNumber", how="left")
+            
             # save the data
             print("Saving data")
-            df_punits = pd.DataFrame(connection.parsed_data, columns=["CVR", "UnitNumber", "Municipality", "Industry"]).to_csv(args.table_folder + "/ProductionUnits" + f'/{file}')
+            df_punits = df_enriched.to_csv(args.table_folder + "/ProductionUnits/" + file)
             print("Data saved")
 
             time.sleep(10)
+            
 
-    pass
+    
 
 
 
