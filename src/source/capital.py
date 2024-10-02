@@ -117,7 +117,6 @@ class AnnualReportTokens(TokenSource):
             "PAYMENT_TYPE",
             "RATE",
             "INVESTMENT"
-            #"INVESTMENT_TYPE"
             ]
 
         # Update the path to the data
@@ -144,11 +143,12 @@ class AnnualReportTokens(TokenSource):
             lineterminator='\n'
         )
         
-        # Handle data types and compute total investment    
+        # Handle data types and compute total investment, multiply by -1 if 'InvestmentType' is 'decrease'   
         ddf = (ddf_capital
             .assign(Date=lambda df: dd.to_datetime(df["Date"], errors='coerce', format='%d-%m-%Y'))
             .assign(Investment=lambda df: df["InvestmentDKK"] * (df["Rate"] / 100))
-            .drop(columns=['InvestmentDKK'])
+            #.assign(Investment=lambda df: df["Investment"] * df["InvestmentType"].map({'decrease': -1}).fillna(1))
+            .drop(columns=['InvestmentDKK'])#,'InvestmentType'])
         )
 
         # Filter out data and rename columns
