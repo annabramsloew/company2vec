@@ -39,13 +39,12 @@ parser.add_argument("--virk_credentials_path", default=None, type=str)
 args = parser.parse_args()
 
 
-if args.query != 'xbrl_parser':
+if args.query != 'xbrl_parser' or args.query != 'compute_filter':
     # read credentials from file and assert that user and password is present
     with open(args.virk_credentials_path) as f:
         credentials = json.load(f)
     assert 'user' in credentials.keys(), 'User not found in credentials'
     assert 'password' in credentials.keys(), 'Password not found in credentials'
-
 
 
 if args.query == 'xml_reports':
@@ -76,7 +75,6 @@ if args.query == 'xml_reports':
     results = pd.DataFrame(entries, columns = ["CVR", "PublicationDate", "UrlXML"])
     results.to_csv(args.local_save_path)
     
-
 
 elif args.query == 'cvr_tables':
     
@@ -184,11 +182,6 @@ elif args.query == 'enrich_punits': #args = table_folder
             print("Data saved")
 
             time.sleep(10)
-            
-
-    
-
-
 
 
 elif args.query == 'xbrl_parser':
@@ -264,8 +257,6 @@ elif args.query == 'xbrl_parser':
         print(f"Time elapsed fetching and saving {CHUNK_SIZE} results: ", end_time - start_time)
 
 
-
-
 elif args.query == 'capital_changes':
     
     #load data from xml_links folder
@@ -330,6 +321,31 @@ elif args.query == 'capital_changes':
         print("Time elapsed fetching and saving 10k results: ", end_time - start_time)
 
         time.sleep(10)
+
+
+elif args.query == 'compute_filter':
+    print("Loading data from registration folder")
+    #load data from registration folder
+    data = pd.DataFrame(columns=['CVR', 'FromDate', 'ChangeType', 'NewValue'])
+    
+    path = args.table_folder + "/Registrations"
+    files = os.listdir(path)
+    for file in files:
+        if file.endswith(".csv"):
+            df = pd.read_csv(path + "/" + file, index_col=0)
+            data = pd.concat([data, df])
+
+    print("Filtering data")
+    #find all unique CVRs with ChangeType="CompanyType" and NewValue in ["A/S", "APS", "IVS"]
+    data = data[data["ChangeType"] == "CompanyType"]
+    data = data[data["NewValue"].isin(["A/S", "APS", "IVS"])]
+    CVR_list = data["CVR"].unique()
+
+    print("Saving data")
+    #save CVR list
+    CVR_list = pd.DataFrame(CVR_list, columns=["CVR"])
+    save_path = args.table_folder + "/CVRFiltered" + "/CVR_list.csv"
+    CVR_list.to_csv(save_path)
 
 else:
     raise ValueError('Invalid query type')
