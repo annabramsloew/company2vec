@@ -469,8 +469,11 @@ class VirkResult():
 
         # replace all commas with periods
         string = string.replace(",", ".")
-
-        return float(string)
+        
+        try:
+            return float(string) 
+        except:
+            return None
 
 
 

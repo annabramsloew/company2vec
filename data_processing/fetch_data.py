@@ -10,6 +10,9 @@ from xml_parser import fetch_financials
 import datetime as dt
 #from google.colab import drive
 
+# FILTER
+MIN_ANNUAL_REPORTS = 2
+
 
 parser = argparse.ArgumentParser()
 # query
@@ -76,19 +79,22 @@ if args.query == 'xml_reports':
 
 
 elif args.query == 'cvr_tables':
-    cvr_list = unique_cvr(args.xml_reports_folder)
-    print("CVR list length: ", len(cvr_list))
+    
+    #load data from xml_links folder
+    report_data = pd.DataFrame(columns=['CVR', 'PublicationDate', 'UrlXML'])
+    for i in range(2013, 2024):
+        path = r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/xml_links'+ "/" + str(i) + '.csv'
+        df = pd.read_csv(path, index_col=0)
+        report_data = pd.concat([report_data, df])
 
-    # testing
-    #cvr_list = ["35657339", "29140774", "37375675"]
-    #df_cvr = pd.DataFrame(cvr_list, columns=['CVR'])
+    print("Filter 1: Only CVR numbers with MIN_ANNUAL_REPORTS or more reports")
+    # filter out CVR numbers with less than MIN_ANNUAL_REPORTS reports
+    cvr_counts = report_data['CVR'].dropna().astype(int).astype(str).value_counts()
+    cvr_list = cvr_counts[cvr_counts >= MIN_ANNUAL_REPORTS].index.tolist()
 
-
-
-    # split the cvr list into chunks of 50,000 to avoid timeouts
+    # split the cvr list into chunks of 10,000 to avoid timeouts
     index_intervals = [i for i in range(0, len(cvr_list), 10000)]
     
-
     # iterate through the query chunks:
     for i in range(len(index_intervals)):
         start_time = time.time()
@@ -261,13 +267,18 @@ elif args.query == 'xbrl_parser':
 
 
 elif args.query == 'capital_changes':
-    cvr_list = unique_cvr(args.xml_reports_folder)
-    print("CVR list length: ", len(cvr_list))
+    
+    #load data from xml_links folder
+    report_data = pd.DataFrame(columns=['CVR', 'PublicationDate', 'UrlXML'])
+    for i in range(2013, 2024):
+        path = r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/xml_links'+ "/" + str(i) + '.csv'
+        df = pd.read_csv(path, index_col=0)
+        report_data = pd.concat([report_data, df])
 
-    # testing
-    #cvr_list = ["35657339", "29140774", "37375675"]
-    #df_cvr = pd.DataFrame(cvr_list, columns=['CVR'])
-
+    print("Filter 1: Only CVR numbers with MIN_ANNUAL_REPORTS or more reports")
+    # filter out CVR numbers with less than MIN_ANNUAL_REPORTS reports
+    cvr_counts = report_data['CVR'].dropna().astype(int).astype(str).value_counts()
+    cvr_list = cvr_counts[cvr_counts >= MIN_ANNUAL_REPORTS].index.tolist()
 
 
     # split the cvr list into chunks of 10,000 to avoid timeouts
