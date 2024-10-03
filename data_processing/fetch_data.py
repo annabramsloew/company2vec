@@ -39,7 +39,7 @@ parser.add_argument("--virk_credentials_path", default=None, type=str)
 args = parser.parse_args()
 
 
-if args.query != 'xbrl_parser' or args.query != 'compute_filter':
+if args.query not in ['xbrl_parser', 'compute_filter']:
     # read credentials from file and assert that user and password is present
     with open(args.virk_credentials_path) as f:
         credentials = json.load(f)
@@ -81,7 +81,7 @@ elif args.query == 'cvr_tables':
     #load data from xml_links folder
     report_data = pd.DataFrame(columns=['CVR', 'PublicationDate', 'UrlXML'])
     for i in range(2013, 2024):
-        path = r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/xml_links'+ "/" + str(i) + '.csv'
+        path = args.xml_reports_folder + "/" + str(i) + '.csv'
         df = pd.read_csv(path, index_col=0)
         report_data = pd.concat([report_data, df])
 
@@ -262,7 +262,7 @@ elif args.query == 'capital_changes':
     #load data from xml_links folder
     report_data = pd.DataFrame(columns=['CVR', 'PublicationDate', 'UrlXML'])
     for i in range(2013, 2024):
-        path = r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/xml_links'+ "/" + str(i) + '.csv'
+        path = args.xml_reports_folder + "/" + str(i) + '.csv'
         df = pd.read_csv(path, index_col=0)
         report_data = pd.concat([report_data, df])
 

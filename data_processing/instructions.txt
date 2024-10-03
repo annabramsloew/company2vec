@@ -33,7 +33,6 @@ python fetch_data.py --query="enrich_punits"  --virk_credentials_path="/Desktop/
 
 
 
-
 **Step 4: Fetching Financial Data
 -use the following command line call to fetch and parse all xml financial reports in the xml_reports folder
 
@@ -51,4 +50,8 @@ python fetch_data.py --query="capital_changes" --xml_reports_folder="/Desktop/xm
 
 
 
+**Step 6: Compute a filtered list of relevant cvrs
+- saves a csv-file with the relevant CVRs after filtration.
 
+command line call:
+python fetch_data.py --query="compute_filter" --table_folder="/Desktop/Tables" 
