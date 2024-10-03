@@ -96,7 +96,9 @@ class EmployeeTokens(TokenSource):
         as compressed parquet file, as this is easier to parse than the CSV for the
         next steps"""
 
-
+        # read CVR lookup table to use for filtering
+        df_cvr = pd.read_csv(self.input_csv / "CVRFiltered" / "CVR_list.csv", index_col=0)
+        
         ddf_list = []
         for i in range(len(os.listdir(self.input_csv / "EmployeeCounts"))):
             print(i)
@@ -108,10 +110,12 @@ class EmployeeTokens(TokenSource):
             # Filter away data before 2013
             df_employees = df_employees.loc[df_employees['FromDate'] >= datetime(2013, 1, 1)]
 
-
-
             # read chunk of registration data 
             df_registrations = pd.read_csv(self.input_csv  / f"Registrations/chunk{i}.csv", index_col=0)
+
+            # filter away CVR's that are not in the lookup table from the employee data and registration data
+            df_employees = df_employees.loc[df_employees['CVR'].isin(df_cvr['CVR'].values)]
+            df_registrations = df_registrations.loc[df_registrations['CVR'].isin(df_cvr['CVR'].values)]
 
             # merge
             df_employees = enrich_with_asof_values(df_employees, df_registrations)
