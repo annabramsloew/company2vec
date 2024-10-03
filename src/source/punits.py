@@ -13,7 +13,7 @@ from ..ops import sort_partitions
 from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import dd_enrich_with_asof_values, convert_currency
 
-DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec"
+DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet(2)" / "Virk2Vec"
 
 # ------------------------------------------ FIX IMPORTS ------------------------------------------
 @dataclass
@@ -117,9 +117,11 @@ class AnnualReportTokens(TokenSource):
 
         # Update the path to the data
         path_punits = self.input_csv / "ProductionUnits"
+        path_cvr = self.input_csv / "CVRFiltered"
 
         # Load files
         punits_csv = [file for file in path_punits.iterdir() if file.is_file() and file.suffix == '.csv']
+        cvr_csv = [file for file in path_cvr.iterdir() if file.is_file() and file.suffix == '.csv']
 
         # Load data
         ddf_punits = dd.read_csv(
@@ -137,6 +139,18 @@ class AnnualReportTokens(TokenSource):
             blocksize="256MB",
         )
 
+        df_cvr = dd.read_csv(
+            cvr_csv,
+            usecols=['CVR'],
+            dtype={
+                "CVR": int
+            }
+        )
+
+        # filter away CVR's that are not in the lookup table from the annual report data and registration data
+        cvr_list = df_cvr['CVR'].compute()
+        ddf_punits = ddf_punits.loc[ddf_punits['CVR'].isin(cvr_list)]
+
         # Filter out data and rename columns
         ddf = (ddf_punits
             .rename(columns=dict(zip(ddf_punits.columns, output_columns)))
@@ -149,3 +163,8 @@ class AnnualReportTokens(TokenSource):
         assert isinstance(ddf, dd.DataFrame)
 
         return ddf
+    
+# use for debugging
+# if __name__ == "__main__":
+#     tokens = AnnualReportTokens()
+#     parsed_data = tokens.tokenized().compute()
