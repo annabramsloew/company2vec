@@ -30,7 +30,7 @@ class EmployeeTokens(TokenSource):
             "COMPANY_TYPE", 
             "INDUSTRY", 
             "COMPANY_STATUS", 
-            "ADDRESS", 
+            "MUNICIPALITY", 
             Binned("EMPLOYEE_COUNT", prefix="EMPLOYEES", n_bins=100)
         ]
     )
@@ -55,8 +55,25 @@ class EmployeeTokens(TokenSource):
                                                                      "ApS": "APS", 
                                                                      "IVS": "IVS"}),
                 INDUSTRY=lambda x: "IND_" + x.INDUSTRY, 
-                COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS, #TODO: Define status mapping
-                ADDRESS=lambda x: "WMUN_" + x.ADDRESS, #TODO: Change
+                COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS.map({
+                                                                            "NORMAL": "ACTIVE",
+                                                                            "AKTIV": "ACTIVE",
+                                                                            "UNDER REASSUMERING" : "OTHER",
+                                                                            "UNDER FRIVILLIG LIKVIDATION" : "OTHER",
+                                                                            "UNDER REKONSTRUKTION" : "DISTRESS",
+                                                                            "UNDER TVANGSOPLØSNING" : "DISTRESS",
+                                                                            "UNDER KONKURS" : "DISTRESS",
+                                                                            "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "DISSOLVED",
+                                                                            "OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING" : "DISSOLVED",
+                                                                            "OPLØST EFTER SPALTNING" : "DISSOLVED",
+                                                                            "OPLØST EFTER ERKLÆRING" : "DISSOLVED",
+                                                                            "OPLØST EFTER FUSION" : "DISSOLVED",
+                                                                            "OPLØST EFTER FRIVILLIG LIKVIDATION" : "DISSOLVED",
+                                                                            "SLETTET" : "DISSOLVED",
+                                                                            "OPLØST EFTER KONKURS" : "BANKRUPT",
+                                                                            "TVANGSOPLØST" : "BANKRUPT",
+                                                                        }), 
+                MUNICIPALITY=lambda x: "WMUN_" + x.MUNICIPALITY, 
             )
             .pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
@@ -81,8 +98,7 @@ class EmployeeTokens(TokenSource):
 
 
         ddf_list = []
-        #for i in range(len(os.listdir(self.input_csv / "EmployeeCounts"))):
-        for i in range(10):
+        for i in range(len(os.listdir(self.input_csv / "EmployeeCounts"))):
             print(i)
 
             # read chunk of employee data
@@ -111,7 +127,7 @@ class EmployeeTokens(TokenSource):
                     'CompanyType' : 'COMPANY_TYPE',
                     'Industry' : 'INDUSTRY',
                     'Status' : 'COMPANY_STATUS', 
-                    'Address' : 'ADDRESS', #"TODO: CHange to MUNICIPALITY once data has been rerun
+                    'Municipality' : 'MUNICIPALITY', 
                     'FromDate' : 'FROM_DATE',
                     'EmployeeCounts' : 'EMPLOYEE_COUNT'
                 })
