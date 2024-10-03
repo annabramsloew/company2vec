@@ -44,7 +44,7 @@ class VirkResult():
         
         elif endpoint == 'cvr-permanent/produktionsenhed':
             return self.enriched_production_units()
-            return lines
+  
 
 
         else:
@@ -54,7 +54,7 @@ class VirkResult():
 
     def registrations(self, hit, cvr) -> list:
         """
-        Fetches all registrations related to 'Address', 'Industry', 'CompanyType', 'Name', 'Capital' for a given company hit. 
+        Fetches all registrations related to 'Municipality', 'Industry', 'CompanyType', 'Name', 'Capital' for a given company hit. 
         Returns a dataframe with CVR, FromDate, ChangeType, NewValue
         :param hit: dict
         :param cvr: str
@@ -92,7 +92,7 @@ class VirkResult():
 
     def address_changes(self, hit, cvr) -> list:
         """ Fetches all address changes for a given company hit.
-        Returns a list of lists with values: CVR=cvr, FromDate, ChangeType='Address', NewValue
+        Returns a list of lists with values: CVR=cvr, FromDate, ChangeType='Municipality', NewValue
         :param hit: dict
         :param cvr: str
         :return: list
@@ -102,8 +102,11 @@ class VirkResult():
         # fetch all address changes
         for address in hit['Vrvirksomhed']['beliggenhedsadresse']:
             from_date = address['periode']['gyldigFra']
-            new_value = address['postnummer']
-            lines.append([cvr, from_date, 'Address', new_value])
+            try:
+                new_value = address['kommune']['kommuneKode']
+            except:
+                new_value = None
+            lines.append([cvr, from_date, 'Municipality', new_value])
 
         return lines
 
@@ -147,7 +150,6 @@ class VirkResult():
         :param cvr: str
         :return: list
         """
-        # TODO: Enrich with the investment 'kurs'
         lines = []
         for attribute in hit['Vrvirksomhed']['attributter']:
             if attribute['type'] == 'KAPITAL':
