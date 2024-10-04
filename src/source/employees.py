@@ -35,7 +35,7 @@ class EmployeeTokens(TokenSource):
         ]
     )
     
-    input_csv: Path = Path(r"/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables")
+    input_csv: Path = Path(r"/Users/nikolaibeckjensen/Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec/Tables")
     earliest_start: str = "01/01/2008"
 
     
@@ -51,10 +51,10 @@ class EmployeeTokens(TokenSource):
         result = (
             self.indexed()
             .assign(
-                COMPANY_TYPE=lambda x: "CTYP_" + x.COMPANY_TYPE.map({"A/S": "AS", 
-                                                                     "ApS": "APS", 
+                COMPANY_TYPE=lambda x: "CTYPE_" + x.COMPANY_TYPE.map({"A/S": "AS", 
+                                                                     "APS": "APS", 
                                                                      "IVS": "IVS"}),
-                INDUSTRY=lambda x: "IND_" + x.INDUSTRY, 
+                INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not ind=="UNK" else "UNK", meta=('INDUSTRY', 'object')), 
                 COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS.map({
                                                                             "NORMAL": "ACTIVE",
                                                                             "AKTIV": "ACTIVE",
@@ -73,7 +73,7 @@ class EmployeeTokens(TokenSource):
                                                                             "OPLØST EFTER KONKURS" : "BANKRUPT",
                                                                             "TVANGSOPLØST" : "BANKRUPT",
                                                                         }), 
-                MUNICIPALITY=lambda x: "WMUN_" + x.MUNICIPALITY, 
+                MUNICIPALITY=lambda x: "MUN_" + x.MUNICIPALITY, 
             )
             .pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
@@ -100,7 +100,11 @@ class EmployeeTokens(TokenSource):
         df_cvr = pd.read_csv(self.input_csv / "CVRFiltered" / "CVR_list.csv", index_col=0)
         
         ddf_list = []
-        for i in range(len(os.listdir(self.input_csv / "EmployeeCounts"))):
+        files = os.listdir(self.input_csv / "EmployeeCounts")
+        # discard files which are not csv
+        files = [file for file in files if file.endswith('.csv')]
+        
+        for i in range(len(files)):
             print(i)
 
             # read chunk of employee data
@@ -139,7 +143,14 @@ class EmployeeTokens(TokenSource):
         del ddf_list
 
 
-        # TODO: Drop missing values and deal with datatypes
+        # Handle missing values and deal with datatypes
+        ddf = ddf.fillna({
+            'COMPANY_TYPE': 'UNK',
+            'INDUSTRY': 'UNK',
+            'COMPANY_STATUS': 'UNK',
+            'MUNICIPALITY': 'UNK',
+            'EMPLOYEE_COUNT': 'UNK'
+        })
         
         assert isinstance(ddf, dd.DataFrame)
 
