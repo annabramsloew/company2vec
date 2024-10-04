@@ -17,20 +17,19 @@ DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk
 
 # ------------------------------------------ FIX IMPORTS ------------------------------------------
 @dataclass
-class AnnualReportTokens(TokenSource):
-    """This generates tokens based on information from the annual reports, registrations and currency datasets.
-    Currently loads data from a CSV dump of the annual reports.
+class ProductionUnitTokens(TokenSource):
+    """This generates tokens based on information from the ProductionUnits table.
 
-    :param input_csv: path to the Tables folder, from which data on registrations, currency rates and annual reports may be fetched.
-    :param earliest_start: The earliest start date of a hospital encounter.
+    :param input_csv: Path to folder where the ProductionUnits table is stored.
+    :param earliest_start: TODO?
     """
 
     name: str = "financaial"
     fields: List[FIELD_TYPE] = field(
         default_factory=lambda: [
             "ACTION", #open or close
-            #"INDUSTRY", 
-            #"MUNICIPALITY",
+            "INDUSTRY", 
+            "MUNICIPALITY"
         ]
     )
 
@@ -57,17 +56,10 @@ class AnnualReportTokens(TokenSource):
         result = (
             self.indexed()
             .assign(
-                C_ADIAG=lambda x: x.C_ADIAG.str[1:4],
-                C_INDM=lambda x: x.C_INDM.map(
-                    {"1": "URGENT", "2": "NON_URGENT"}
-                ).astype("string"),
-                C_PATTYPE=lambda x: x.C_PATTYPE.map(
-                    {"0": "INPAT", "2": "OUTPAT", "3": "EMERGENCY"}
-                ).astype("string"),
+                ACTION=lambda x: x.ACTION.map({"entry": "ACT_OPEN", "exit": "ACT_CLOSE"}),
+                INDUSTRY=lambda x: "IND_" + x.INDUSTRY, 
+                MUNICIPALITY=lambda x: "WMUN_" + x.MUNICIPALITY
             )
-            .pipe(sort_partitions, columns=["START_DATE"])[
-                ["START_DATE", *self.field_labels()]
-            ]
         )
         assert isinstance(result, dd.DataFrame)
         return result
@@ -103,16 +95,16 @@ class AnnualReportTokens(TokenSource):
             "CVR",
             "Date",
             "ChangeType",
-            #Industry,
-            #Municipality
+            "Industry",
+            "Municipality"
             ]
 
         output_columns = [
             "CVR",
             "START_DATE",
             "ACTION",
-            #"INDUSTRY",
-            #"MUNICIPALITY"
+            "INDUSTRY",
+            "MUNICIPALITY"
             ]
 
         # Update the path to the data
@@ -131,8 +123,8 @@ class AnnualReportTokens(TokenSource):
                 "CVR": int,
                 "Date": str,
                 "ChangeType": str,
-                #"Industry": str,
-                #"Municipality": str
+                "Industry": str,
+                "Municipality": str
             },
             blocksize="256MB",
         )
