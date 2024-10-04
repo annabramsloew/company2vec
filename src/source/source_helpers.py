@@ -39,7 +39,9 @@ def enrich_with_asof_values(df: pd.DataFrame, df_registrations: pd.DataFrame, va
 
 def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame, values=['Industry', 'CompanyType', 'Municipality', 'Status'], 
                                date_col_df='FromDate', 
-                               date_col_registrations='FromDate'
+                               date_col_registrations='FromDate',
+                               left_by_value='CVR',
+                               right_by_value='CVR'
                                ) -> dd.DataFrame:
     """
     Adds the as-of values of df_registrations for the entries in df.
@@ -60,7 +62,7 @@ def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame,
         df_value[date_col_registrations] = dd.to_datetime(df_value[date_col_registrations], errors='coerce')
 
         # Select relevant columns and rename 'NewValue' to the current value
-        df_value = df_value[['CVR', date_col_registrations, 'NewValue']].rename(columns={
+        df_value = df_value[[right_by_value, date_col_registrations, 'NewValue']].rename(columns={
             date_col_registrations: date_col_df,  # Align the date column names
             'NewValue': value  # Rename 'NewValue' to the specific value being processed
         })
@@ -76,7 +78,8 @@ def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame,
             df,
             df_value,
             on=date_col_df,
-            by='CVR',
+            left_by=left_by_value,
+            right_by=right_by_value,
             direction='backward'
         )
 
