@@ -3,9 +3,9 @@ from inspect import BoundArguments
 from pathlib import Path
 from typing import Any, Callable, Protocol, Type, TypeVar
 
-from .serialize import ParquetSerializer, PickleSerializer, Serializer, TSVSerializer
 
-log = logging.getLogger(__name__)
+from .serialize import ParquetSerializer, PickleSerializer, Serializer, TSVSerializer
+from .logging_config import log
 
 T = TypeVar("T")
 

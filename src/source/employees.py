@@ -9,9 +9,9 @@ import dask.dataframe as dd
 import pandas as pd
 import os
 
-#from ..decorators import save_parquet
+from ..decorators import save_parquet
 from ..ops import sort_partitions
-#from ..serialize import DATA_ROOT
+from ..serialize import DATA_ROOT
 from .base import FIELD_TYPE, TokenSource, Binned
 
 from .source_helpers import enrich_with_asof_values
@@ -35,7 +35,7 @@ class EmployeeTokens(TokenSource):
         ]
     )
     
-    input_csv: Path = Path(r"/Users/nikolaibeckjensen/Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec/Tables")
+    input_csv: Path = Path(r"/Users/nikolaibeckjensen/Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec/data/Tables")
     earliest_start: str = "01/01/2008"
 
     
@@ -43,6 +43,10 @@ class EmployeeTokens(TokenSource):
         self._earliest_start = pd.to_datetime(self.earliest_start)
 
 
+    @save_parquet(
+    DATA_ROOT / "processed/sources/{self.name}/tokenized",
+    on_validation_error="error",
+    )
     def tokenized(self) -> dd.DataFrame:
         """
         Loads the indexed data, then tokenizes it.
@@ -83,6 +87,10 @@ class EmployeeTokens(TokenSource):
 
 
 
+    @save_parquet(
+        DATA_ROOT / "interim/sources/{self.name}/indexed",
+        on_validation_error="recompute",
+    )
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
         result = self.parsed().set_index("CVR")
@@ -139,6 +147,8 @@ class EmployeeTokens(TokenSource):
                     'FromDate' : 'FROM_DATE',
                     'EmployeeCounts' : 'EMPLOYEE_COUNT'
                 })
+        
+  
 
         del ddf_list
 
@@ -157,8 +167,8 @@ class EmployeeTokens(TokenSource):
         return ddf
     
 
-# use for debugging
-# if __name__ == "__main__":
-#     tokens = EmployeeTokens()
-#     parsed_data = tokens.tokenized().compute()
+#use for debugging
+if __name__ == "__main__":
+    tokens = EmployeeTokens()
+    parsed_data = tokens.tokenized()
     

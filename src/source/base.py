@@ -7,6 +7,7 @@ import dask.array as da
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+import time
 
 
 @dataclass
@@ -21,6 +22,7 @@ class Field:
 
     def transform(self, x: dd.Series) -> dd.Series:
         """Returns data as-is. Implement in a subclass to apply a transformation"""
+        print(f"Started transformation of Field-variable: {self.field_label}")
         return x
 
     def fit(self, x: dd.DataFrame) -> None:
@@ -58,7 +60,7 @@ class Binned(Field):
 
         assert self.field_label == x.name
         assert self.bins_ is not None
-
+        print(f"Started transformation of Binned Field-variable: {self.field_label}")
         n_bins = len(self.bins_) - 1
         categories = [f"{self.prefix}_{i+1}" for i in range(n_bins)]
 

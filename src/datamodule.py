@@ -3,7 +3,7 @@
 # import pickle
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from typing_extensions import dataclass_transform
 
 import dask
@@ -18,14 +18,13 @@ import numpy as np
 # from ..tasks.base import Task, collate_encoded_documents
 # from .sampler import FixedSampler
 # from .dataset import DocumentDataset, ShardedDocumentDataset
-# from .decorators import save_parquet, save_pickle
+from .decorators import save_parquet, save_pickle
 from .ops import concat_columns_dask, concat_sorted
 # from .populations.base import Population
-# from .serialize import DATA_ROOT, ValidationError, _jsonify
+from .serialize import DATA_ROOT, ValidationError, _jsonify
 from .source.base import Field, TokenSource
 from .source.employees import EmployeeTokens
 # from .vocabulary import Vocabulary
-
 
 
 
@@ -63,7 +62,7 @@ class Corpus:
         self._reference_date = pd.to_datetime(self.reference_date)
         self._threshold = pd.to_datetime(self.threshold)
 
-    #@save_parquet(DATA_ROOT / "processed/corpus/{self.name}/sentences/{split}")
+    @save_parquet(DATA_ROOT / "processed/corpus/{self.name}/sentences/{split}")
     def combined_sentences(self, split: str) -> dd.DataFrame:
         """Combines the sentences from each source. Filters the data to only consist
         of sentences for the given :obj:`split`.
@@ -132,10 +131,10 @@ class Corpus:
 
 
 
-    # @save_parquet(
-    #     DATA_ROOT / "interim/corpus/{self.name}/sentences_{source.name}",
-    #     on_validation_error="recompute",
-    # )
+    @save_parquet(
+        DATA_ROOT / "interim/corpus/{self.name}/sentences_{source.name}",
+        on_validation_error="recompute",
+    )
 
 
 
@@ -170,11 +169,11 @@ class Corpus:
 
         return sentences
 
-    # @save_parquet(
-    #     DATA_ROOT
-    #     / "interim/corpus/{self.name}/tokenized_and_transformed/{source.name}",
-    #     on_validation_error="recompute",
-    # )
+    @save_parquet(
+        DATA_ROOT
+        / "interim/corpus/{self.name}/tokenized_and_transformed/{source.name}",
+        on_validation_error="recompute",
+    )
 
 
     def tokenized_and_transformed(self, source: TokenSource) -> dd.DataFrame:
@@ -189,10 +188,10 @@ class Corpus:
         assert isinstance(tokenized, dd.DataFrame)
         return tokenized
 
-    # @save_pickle(
-    #     DATA_ROOT / "interim/corpus/{self.name}/fitted_fields/{source.name}",
-    #     on_validation_error="recompute",
-    # )
+    @save_pickle(
+        DATA_ROOT / "interim/corpus/{self.name}/fitted_fields/{source.name}",
+        on_validation_error="recompute",
+    )
 
 
     def fitted_fields(self, source: TokenSource) -> List[Field]:
@@ -230,6 +229,6 @@ if __name__ == "__main__":
     corpus = Corpus(name="test", sources=tokensources)
 
     sentences = corpus.combined_sentences("train")
-    sentences.to_csv("/Users/nikolaibeckjensen/Desktop/Company2Vec/sentences-*.csv")
+    sentences.sentences.partitions[0].to_csv("/Users/nikolaibeckjensen/Desktop/Company2Vec/sentences-*.csv")
 
 
