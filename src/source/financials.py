@@ -14,7 +14,8 @@ from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import dd_enrich_with_asof_values, convert_currency
 
 
-DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec"
+DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet(2)" / "Virk2Vec"
+#DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec"
 
 # ------------------------------------------ FIX IMPORTS ------------------------------------------
 @dataclass
@@ -32,7 +33,7 @@ class AnnualReportTokens(TokenSource):
             "COMPANY_TYPE", 
             "INDUSTRY", 
             "COMPANY_STATUS", 
-            "ADDRESS", #TODO: Change
+            "MUNICIPALITY", #TODO: Change
             Binned("PROFIT_LOSS", prefix="PROFIT_LOSS", n_bins=100),
             Binned("EQUITY", prefix="EQUITY", n_bins=100),
             Binned("ASSETS", prefix="ASSETS", n_bins=100),
@@ -40,7 +41,8 @@ class AnnualReportTokens(TokenSource):
         ]
     )
 
-    input_csv: Path =  Path(r"/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables") #TODO: Change back to relative import DATA_ROOT / "Tables"
+    #input_csv: Path =  Path(r"/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables") #TODO: Change back to relative import DATA_ROOT / "Tables"
+    input_csv: Path = DATA_ROOT / "Tables"
     earliest_start: str = "01/01/2013"
 
     def _post_init__(self) -> None:
@@ -63,7 +65,7 @@ class AnnualReportTokens(TokenSource):
             self.indexed()
             .assign(
                 COMPANY_TYPE=lambda x: "CTYP_" + x.COMPANY_TYPE.map({"A/S": "AS", 
-                                                                     "ApS": "APS", 
+                                                                     "ApS": "APS", #tror kun der er "APS" i data ikke "ApS"
                                                                      "IVS": "IVS"}),
                 INDUSTRY=lambda x: "IND_" + x.INDUSTRY, 
                 COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS, #TODO: Define status mapping
@@ -103,12 +105,7 @@ class AnnualReportTokens(TokenSource):
         as compressed parquet file, as this is easier to parse than the CSV for the
         next steps"""
 
-        columns_registrations = [
-        "CVR",
-        "FromDate",
-        "ChangeType",
-        "NewValue"
-        ]
+        columns_registrations = ["CVR", "FromDate", "ChangeType", "NewValue"]
 
         columns_annualreport = [
             "CVR",
@@ -120,36 +117,32 @@ class AnnualReportTokens(TokenSource):
             "LiabilitiesAndEquity"
         ]
 
-        columns_currency = [
-        "year",
-        "month",
-        "from_currency",
-        "rate"
-        ]
+        columns_currency = ["year", "month", "from_currency", "rate"]
 
         output_columns = [
-        "START_DATE",
-        "CVR",
-        "PROFIT_LOSS",
-        "ASSETS",
-        "EQUITY",
-        "LIABILITIES_AND_EQUITY",
-        "INDUSTRY",
-        "COMPANY_TYPE",
-        "MUNICIPALITY",
-        "COMPANY_STATUS"
+            "FROM_DATE",
+            "CVR",
+            "PROFIT_LOSS",
+            "ASSETS",
+            "EQUITY",
+            "LIABILITIES_AND_EQUITY",
+            "INDUSTRY",
+            "COMPANY_TYPE",
+            "MUNICIPALITY",
+            "COMPANY_STATUS"
         ]
         
         # Update the path to the data
         path_financials = self.input_csv / "Financials"
         path_registrations = self.input_csv  / "Registrations"
         path_currency = self.input_csv / "Currency"
+        path_cvr = self.input_csv / "CVRFiltered"
         
         # Load files
         financials_csv = [file for file in path_financials.iterdir() if file.is_file() and file.suffix == '.csv']
-        financials_csv = [financials_csv[0]]
         registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv'] 
         currency_csv = [file for file in path_currency.iterdir() if file.is_file() and file.suffix == '.csv']
+        cvr_csv = [file for file in path_cvr.iterdir() if file.is_file() and file.suffix == '.csv']
 
         # Load data
         ddf_registrations = dd.read_csv(
@@ -196,12 +189,25 @@ class AnnualReportTokens(TokenSource):
             },
             blocksize="256MB"
         )
-        
+
+        df_cvr = dd.read_csv(
+            cvr_csv,
+            usecols=['CVR'],
+            dtype={
+                "CVR": int
+            }
+        )
+
+        # filter away CVR's that are not in the lookup table from the annual report data and registration data
+        cvr_list = df_cvr['CVR'].compute()
+        ddf_annualreport = ddf_annualreport.loc[ddf_annualreport['CVR'].isin(cvr_list)]
+        ddf_registrations = ddf_registrations.loc[ddf_registrations['CVR'].isin(cvr_list)]
+
         # enrich the annual report with asof values from the registrations
         ddf = dd_enrich_with_asof_values(
             ddf_annualreport, 
             ddf_registrations, 
-            values=['Industry', 'CompanyType', 'Address', 'Status'], 
+            values=['Industry', 'CompanyType', 'Municipality', 'Status'], 
             date_col_df='PublicationDate', 
             date_col_registrations='FromDate'
             )
@@ -216,8 +222,10 @@ class AnnualReportTokens(TokenSource):
         ddf = (
             ddf.drop(columns=['Currency'])
             .pipe(lambda df: df.rename(columns=dict(zip(df.columns, output_columns))))
-            .loc[lambda x: x.START_DATE >= self.earliest_start]
+            .loc[lambda x: x.FROM_DATE >= self.earliest_start]
         )
+
+        #ddf = ddf.compute() #used for debugging
 
         if self.downsample:
             ddf = self.downsample_persons(ddf)
@@ -228,7 +236,7 @@ class AnnualReportTokens(TokenSource):
     
 
 # use for debugging
-if __name__ == "__main__":
-    tokens = AnnualReportTokens()
-    parsed_data = tokens.tokenized().compute()
+# if __name__ == "__main__":
+#     tokens = AnnualReportTokens()
+#     parsed_data = tokens.tokenized().compute()
     

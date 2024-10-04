@@ -37,7 +37,7 @@ def enrich_with_asof_values(df: pd.DataFrame, df_registrations: pd.DataFrame, va
 
     return df
 
-def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame, values=['Industry', 'CompanyType', 'Address', 'Status'], 
+def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame, values=['Industry', 'CompanyType', 'Municipality', 'Status'], 
                                date_col_df='FromDate', 
                                date_col_registrations='FromDate'
                                ) -> dd.DataFrame:
@@ -65,10 +65,16 @@ def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame,
             'NewValue': value  # Rename 'NewValue' to the specific value being processed
         })
 
+        # sort the dataframes by the date column
+        df = df.set_index(date_col_df, drop=False).reset_index(drop=True)
+        df = df.sort_values(date_col_df)
+        df_value = df_value.set_index(date_col_df, drop=False).reset_index(drop=True)
+        df_value = df_value.sort_values(date_col_df)
+
         # Perform the asof merge using Dask's merge_asof function
         df = dd.merge_asof(
-            df.sort_values(date_col_df),
-            df_value.sort_values(date_col_df),
+            df,
+            df_value,
             on=date_col_df,
             by='CVR',
             direction='backward'

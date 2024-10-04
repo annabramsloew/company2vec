@@ -1,1 +1,19 @@
 Notebooks/.DS_Store Scripts/.DS_Store src/.DS_Store
+data_processing/__pycache__/helpers.cpython-39.pyc
+data_processing/__pycache__/queries.cpython-39.pyc
+data_processing/__pycache__/VirkConnection.cpython-39.pyc
+data_processing/__pycache__/VirkResult.cpython-39.pyc
+data_processing/__pycache__/xml_parser.cpython-39.pyc
+src/.DS_Store
+src/__pycache__/__init__.cpython-39.pyc
+src/__pycache__/decorators.cpython-39.pyc
+src/__pycache__/ops.cpython-39.pyc
+src/source/__pycache__/__init__.cpython-39.pyc
+src/source/__pycache__/base.cpython-39.pyc
+src/source/__pycache__/financials.cpython-39.pyc
+src/source/__pycache__/ownership.cpython-39.pyc
+src/source/__pycache__/source_helpers.cpython-39.pyc
+.DS_Store
+src/source/__pycache__/employees.cpython-39.pyc
+src/source/__pycache__/capital.cpython-39.pyc
+src/source/__pycache__/punits.cpython-39.pyc
