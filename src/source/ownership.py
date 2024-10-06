@@ -209,6 +209,7 @@ class AnnualReportTokens(TokenSource):
         ddf_owners = ddf_owners[ddf_owners['CVR'].isin(cvr_list)]
         ddf_registrations = ddf_registrations[ddf_registrations['CVR'].isin(cvr_list)]
         ddf_employee = ddf_employee[ddf_employee['CVR'].isin(cvr_list)]
+        del df_cvr
 
         #filter away employee data with dates before the earliest start date
         ddf_employee['FromDate'] = dd.to_datetime(ddf_employee['FromDate'], errors='coerce')
@@ -280,6 +281,7 @@ class AnnualReportTokens(TokenSource):
             right_by='CVR_right',
             direction='backward'
         ).drop(columns=['JoinID', 'CVR_right'])
+        del ddf_employee
 
         #concatenate the internal and external owners
         ddf_owners = dd.concat([ddf_owners_internal, ddf_owners_external])
