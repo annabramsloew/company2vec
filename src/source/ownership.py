@@ -116,10 +116,10 @@ class AnnualReportTokens(TokenSource):
         columns_employee = ['CVR', 'FromDate', 'EmployeeCounts']
 
         output_columns = [
-            "CVR",
             "FROM_DATE",
-            "TYPE",
+            "CVR",
             "SHARE",
+            "TYPE",
             "INDUSTRY",
             "EMPLOYEE_COUNT"
             ]
@@ -284,13 +284,17 @@ class AnnualReportTokens(TokenSource):
         #concatenate the internal and external owners
         ddf_owners = dd.concat([ddf_owners_internal, ddf_owners_external])
 
-        # Filter out data and rename columns
+        # Rename columns
         ddf = (ddf_owners
             .rename(columns=dict(zip(ddf_owners.columns, output_columns)))
-            .loc[lambda x: x.START_DATE >= self.earliest_start]
         )
 
-        ddf = ddf.compute()
+        #check min and max date
+        #min_date = ddf['FROM_DATE'].min().compute()
+        #max_date = ddf['FROM_DATE'].max().compute()
+
+        #check result
+        #ddf = ddf.compute()
 
         if self.downsample:
             ddf = self.downsample_persons(ddf)
@@ -301,7 +305,7 @@ class AnnualReportTokens(TokenSource):
     
 
 
-#
-if __name__ == "__main__":
-    report_tokens = AnnualReportTokens()
-    report_tokens.parsed()
+# Used for debugging
+# if __name__ == "__main__":
+#     report_tokens = AnnualReportTokens()
+#     report_tokens.parsed()
