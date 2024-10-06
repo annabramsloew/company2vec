@@ -206,7 +206,7 @@ elif args.query == 'xbrl_parser':
 
     data = pd.concat([data_5, data_2])
 
-    del cvr_counts
+    del cvr_counts, cvr_counts_2, cvr_counts_5, data_5, data_2
 
     selected_keys = ['GrossProfitLoss', 'EmployeeBenefitsExpense', 'WagesAndSalaries', 'ProfitLoss', 'OtherFinanceIncome','OtherFinanceExpenses',
                  'NonCurrentAssets','CurrentAssets','CashAndCashEquivalents','Assets', 'Equity', 'ShorttermLiabilitiesOtherThanProvisions',
