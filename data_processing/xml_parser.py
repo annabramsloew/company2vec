@@ -170,8 +170,13 @@ def retrieve_context_ids(xml, firstkey):
                         end_date = end_date['#text']
                     elif isinstance(end_date, dict):
                         end_date = end_date['#text']
+                    
+                    #handle edgecase
+                    if end_date == '20209-09-30':
+                        end_date = '2020-09-30'
+                    
                     context_id_to_date[context_id] = dt.datetime.strptime(end_date, '%Y-%m-%d')
-    
+                    
     return context_id_to_date
 
 def find_newest_context_id(context_id_to_date, context_ids):
