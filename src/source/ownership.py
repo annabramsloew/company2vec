@@ -145,6 +145,7 @@ class AnnualReportTokens(TokenSource):
             dtype={
                 "CVR": int,
                 "FromDate": str,
+                "EntityID": int,
                 "ParticipantType": str,
                 "RelationType": str,
                 "Participation": str,
@@ -200,9 +201,6 @@ class AnnualReportTokens(TokenSource):
         ddf_owners['Date'] = dd.to_datetime(ddf_owners['Date'], errors='coerce')
         ddf_owners['Date'] = ddf_owners['Date'].fillna(pd.Timestamp('2000-01-01'))
         ddf_owners = ddf_owners.loc[lambda x: x.Date >= self.earliest_start]
-
-        #convert EntityID to int64
-        ddf_owners['EntityID'] = ddf_owners['EntityID'].astype('int64')
 
         #filter away CVR's that are not in the lookup table from the employee data and registration data
         cvr_list = df_cvr['CVR'].compute()
