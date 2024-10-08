@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from typing_extensions import dataclass_transform
-
+from .logging_config import log
 import dask
 import dask.dataframe as dd
 import pandas as pd
@@ -26,7 +26,7 @@ from .source.base import Field, TokenSource
 from .source.employees import EmployeeTokens
 # from .vocabulary import Vocabulary
 
-
+N_PARTITIONS = 43
 
 
 @dataclass
@@ -123,7 +123,7 @@ class Corpus:
         # ).dt.days.astype(int)
 
         ### DASK SPECIFIC
-        combined_sentences = combined_sentences.reset_index().set_index("CVR", sorted=True, npartitions="auto")
+        combined_sentences = combined_sentences.reset_index().set_index("CVR", sorted=True)
 
         assert isinstance(combined_sentences, dd.DataFrame)
 
@@ -183,8 +183,13 @@ class Corpus:
 
         fields_to_transform = self.fitted_fields(source)
         tokenized = source.tokenized()
+        tokenized = tokenized.repartition(npartitions=N_PARTITIONS)
+
+
         for field in fields_to_transform:
             tokenized[field.field_label] = field.transform(tokenized[field.field_label])
+
+
         assert isinstance(tokenized, dd.DataFrame)
         return tokenized
 
@@ -229,6 +234,6 @@ if __name__ == "__main__":
     corpus = Corpus(name="test", sources=tokensources)
 
     sentences = corpus.combined_sentences("train")
-    sentences.sentences.partitions[0].to_csv("/Users/nikolaibeckjensen/Desktop/Company2Vec/sentences-*.csv")
+    sentences.partitions[0].to_csv("/Users/nikolaibeckjensen/Desktop/Company2Vec/sentences-*.csv")
 
 

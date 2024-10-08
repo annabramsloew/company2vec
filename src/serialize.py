@@ -246,7 +246,7 @@ class ParquetSerializer(Serializer[dd.DataFrame]):
 
         path = self.get_path(f, ba)
         parquet_kwargs = {
-            "engine": "pyarrow-dataset",
+            "engine": "pyarrow", #fastparquet
             "compression": "gzip",
             "allow_truncated_timestamps": True,
             "coerce_timestamps": "us",
@@ -254,7 +254,7 @@ class ParquetSerializer(Serializer[dd.DataFrame]):
         parquet_kwargs.update(self.parquet_kwargs)
 
         for field_ in result.select_dtypes("category").columns:
-            assert result[field_].cat.known
+            assert result[field_].cat.known, "Categories are not known."
 
         if self.verify_index:
             # Verify that the index is properly monotinic, and cleanly divided across
@@ -262,14 +262,15 @@ class ParquetSerializer(Serializer[dd.DataFrame]):
             # generally rely on them for operations with eg. .map_partition. These 
             # checks can be a bit slow, however are worth it imo since it may save
             # some debugging down the line.
-   
-        
-            # _, is_monotonic = dask.compute(
-            #     result.to_parquet(path, compute=False, **parquet_kwargs),
-            #     result.index.is_monotonic,
-            # )
-            result.to_parquet(path, compute=True, **parquet_kwargs)
-            is_monotonic = result.compute().index.is_monotonic
+            #log.debug("Index before verification: %s", result.index.compute())
+            #log.debug("Columns in dask dataframe: %s", result.columns)
+
+            _, is_monotonic = dask.compute(
+                result.to_parquet(path, compute=False, **parquet_kwargs),
+                result.index.is_monotonic_increasing
+            )
+            # result.to_parquet(path, compute=True, **parquet_kwargs)
+            # is_monotonic = result.compute().index.is_monotonic
             assert is_monotonic, "Index is not monotonic."
             
             # Additional test that the non-unique index is divided across partitions 

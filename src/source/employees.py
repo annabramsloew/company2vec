@@ -57,7 +57,7 @@ class EmployeeTokens(TokenSource):
             .assign(
                 COMPANY_TYPE=lambda x: "CTYPE_" + x.COMPANY_TYPE.map({"A/S": "AS", 
                                                                      "APS": "APS", 
-                                                                     "IVS": "IVS"}),
+                                                                     "IVS": "IVS"}, meta=('COMPANY_TYPE', 'object')),
                 INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not ind=="UNK" else "UNK", meta=('INDUSTRY', 'object')), 
                 COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS.map({
                                                                             "NORMAL": "ACTIVE",
@@ -76,7 +76,7 @@ class EmployeeTokens(TokenSource):
                                                                             "SLETTET" : "DISSOLVED",
                                                                             "OPLØST EFTER KONKURS" : "BANKRUPT",
                                                                             "TVANGSOPLØST" : "BANKRUPT",
-                                                                        }), 
+                                                                        }, meta=('COMPANY_STATUS', 'object')), 
                 MUNICIPALITY=lambda x: "MUN_" + x.MUNICIPALITY, 
             )
             .pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
@@ -167,8 +167,8 @@ class EmployeeTokens(TokenSource):
         return ddf
     
 
-#use for debugging
-if __name__ == "__main__":
-    tokens = EmployeeTokens()
-    parsed_data = tokens.tokenized()
+# #use for debugging
+# if __name__ == "__main__":
+#     tokens = EmployeeTokens()
+#     parsed_data = tokens.tokenized()
     

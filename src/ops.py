@@ -1,5 +1,5 @@
 from typing import List, Optional, Sequence
-
+from .logging_config import log
 import dask.dataframe as dd
 #import numba
 import numpy as np
@@ -7,10 +7,12 @@ import pandas as pd
 
 
 def _sort_using_index(data: pd.DataFrame, columns: Sequence[str]) -> pd.DataFrame:
+    #log.debug("_sort_using_index:", [col for col in columns])
     return data.set_index(columns, append=True).sort_index().reset_index(columns)
 
 
 def sort_partitions(data: dd.DataFrame, columns: Sequence[str]) -> dd.DataFrame:
+    #log.debug("sort_partitions:", [col for col in columns])
     result = data.map_partitions(_sort_using_index, columns=columns)
     assert isinstance(result, dd.DataFrame)
     return result
@@ -27,7 +29,7 @@ def concat_sorted(
         .pipe(sort_partitions, columns=columns)
         .repartition(partition_size=partition_size)
     )
-
+    #log.debug("Columns in the concatenated and sorted Dask DataFrame: %s", result.columns)
     assert isinstance(result, dd.DataFrame)
     return result
 

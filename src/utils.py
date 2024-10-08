@@ -65,11 +65,8 @@ def stringify(value: Any) -> str:
         return value.isoformat()
     elif isinstance(value, Path):
         return str(value)
-
+    elif isinstance(value, TokenSource):
+        return value.name
     else:
-        if isinstance(value, TokenSource):
-            return value.name
-        
-        else:
-            print(value.name)
-            raise TypeError(f"Unsupported type: {type(value)}")
+        return value.name # most likely a self created class
+        #raise TypeError(f"Unsupported type: {type(value)}")

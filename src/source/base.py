@@ -66,16 +66,47 @@ class Binned(Field):
 
         tmp_frame = x.to_frame()
         name = self.field_label
+        #partition_lengths = tmp_frame.map_partitions(len).compute()
 
-        tmp_frame["_digitized"] = da.digitize(
-            tmp_frame[name].to_dask_array(lengths=True), bins=self.bins_
-        )
+        # compute the number of partitions
+        n_partitions = len(tmp_frame.divisions) - 1
+        print(f"------> Number of partitions 1: {n_partitions}")
+
+        # Convert to Dask array and debug
+        dask_array = tmp_frame[name].to_dask_array(lengths=True)
+
+
+        # Digitize and debug
+        digitized = da.digitize(dask_array, bins=self.bins_)
+
+        # Convert digitized array to a Dask Series
+        digitized_series = dd.from_dask_array(digitized, index=tmp_frame.index).repartition(npartitions=tmp_frame.npartitions)
+
+        # compute the number of partitions
+        n_partitions = digitized_series.npartitions
+        print(f"------> Number of partitions in digitized: {n_partitions}")
+
+        #print(f"------> Divisions in tmp pre-merge : {tmp_frame.divisions}")
+        print(f"------> Partitions in tmp pre_merge: {tmp_frame.npartitions}")
+
+        # Add digitized data to tmp_frame
+        tmp_frame["_digitized"] = digitized_series
+
+
+        # compute the number of partitions
+        n_partitions = tmp_frame.npartitions
+        #print(f"------> Divisions in tmp post-merge : {tmp_frame.divisions}")
+        print(f"------> Partitions in tmp post_merge: {tmp_frame.npartitions}")
+
         tmp_frame["_digitized"] = (
             self.prefix + "_" + tmp_frame["_digitized"].astype("string")
         )
+
+
         tmp_frame["_digitized"] = tmp_frame["_digitized"].where(
             ~tmp_frame[name].isna(), pd.NA
         )  # Set NA values to NA bin
+
 
         right_over_token = self.prefix + f"_{n_bins + 1}"
         right_over_token_to = self.prefix + f"_{n_bins}"
@@ -85,9 +116,14 @@ class Binned(Field):
         )
 
         dtype = pd.CategoricalDtype(categories)
-
+        
         result = tmp_frame["_digitized"].rename(name).astype(dtype)
-        assert isinstance(result, dd.Series)
+        
+        # compute the number of partitions
+        n_partitions = len(result.divisions) - 1
+        print(f"------> Number of partitions: {n_partitions}")
+
+        assert isinstance(result, dd.Series), "Expected a dask Series"
         return result
 
     def fit(self, x: dd.DataFrame) -> None:
