@@ -7,17 +7,16 @@ from typing import List
 import dask.dataframe as dd
 import pandas as pd
 
-#from ..decorators import save_parquet
+from ..decorators import save_parquet
 from ..ops import sort_partitions
-#from ..serialize import DATA_ROOT
+from ..serialize import DATA_ROOT
 from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import dd_enrich_with_asof_values, convert_currency
 
-DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet(2)" / "Virk2Vec"
 
-# ------------------------------------------ FIX IMPORTS ------------------------------------------
+
 @dataclass
-class AnnualReportTokens(TokenSource):
+class CapitalTokens(TokenSource):
     """This generates tokens based on information from the annual reports, registrations and currency datasets.
     Currently loads data from a CSV dump of the annual reports.
 
@@ -25,13 +24,12 @@ class AnnualReportTokens(TokenSource):
     :param earliest_start: The earliest start date of a hospital encounter.
     """
 
-    name: str = "financaial"
+    name: str = "capital"
     fields: List[FIELD_TYPE] = field(
         default_factory=lambda: [
             "PAYMENT_TYPE", #cash, converting debt, transferring profit, etc.
-            #"INVESTMENT_TYPE", #increase or decrease 
-            Binned("RATE", prefix="RATE", n_bins=100),
-            Binned("INVESTMENT", prefix="INVESTMENT", n_bins=100),
+            Binned("RATE", prefix="RATE", n_bins=10),
+            Binned("INVESTMENT", prefix="INV", n_bins=10),
         ]
     )
 
@@ -41,45 +39,45 @@ class AnnualReportTokens(TokenSource):
     def _post_init__(self) -> None:
         self._earliest_start = pd.to_datetime(self.earliest_start)
 
-    """
+    
     @save_parquet(
         DATA_ROOT / "processed/sources/{self.name}/tokenized",
         on_validation_error="error",
     )
-    """
 
-    # ------------------------------------------ TODO FIX TOKENIZED ------------------------------------------
     def tokenized(self) -> dd.DataFrame:
         """
         Loads the indexed data, then tokenizes it.
-        Clamps the C_ADIAG field, and converts C_INDM and C_PATTYPE to strings.
         """
 
         result = (
             self.indexed()
-            .assign(
-                C_ADIAG=lambda x: x.C_ADIAG.str[1:4],
-                C_INDM=lambda x: x.C_INDM.map(
-                    {"1": "URGENT", "2": "NON_URGENT"}
-                ).astype("string"),
-                C_PATTYPE=lambda x: x.C_PATTYPE.map(
-                    {"0": "INPAT", "2": "OUTPAT", "3": "EMERGENCY"}
-                ).astype("string"),
+            .assign( #note to self: https://erhvervsstyrelsen.dk/vejledning-anvendelse-af-vurderingsberetninger-ved-registreringer#chapter4-3
+                PAYMENT_TYPE=lambda x: x.PAYMENT_TYPE.map({
+                                                            "kontant": "PAY_CASH", 
+                                                            "ved overførte reserver / overskud": "PAY_PROFIT",
+                                                            "ved konvertering af gæld": "PAY_DEBT",
+                                                            "i værdier": "PAY_ASSETS",
+                                                            "ved fusion" : "PAY_MERGER",
+                                                            "ved indskud af bestemmende kapitalpost" : "PAY_MERGER",
+                                                            "ved indskud af bestående virksomhed": "PAY_MERGER",
+                                                            "ved ombytning af konvertible gældsbreve": "PAY_DEBT",
+                                                            }, meta=('PAYMENT_TYPE', 'object')
+                                                           )
             )
-            .pipe(sort_partitions, columns=["START_DATE"])[
-                ["START_DATE", *self.field_labels()]
+            .pipe(sort_partitions, columns=["FROM_DATE"])[
+                ["FROM_DATE", *self.field_labels()]
             ]
         )
         assert isinstance(result, dd.DataFrame)
         return result
 
-    """
+
     @save_parquet(
         DATA_ROOT / "interim/sources/{self.name}/indexed",
         on_validation_error="recompute",
     )
-    """
-    # ------------------------------------------ TODO FIX TOKENIZED ------------------------------------------
+
 
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
@@ -87,13 +85,13 @@ class AnnualReportTokens(TokenSource):
         assert isinstance(result, dd.DataFrame)
         return result
 
-    """
+
     @save_parquet(
         DATA_ROOT / "interim/sources/{self.name}/parsed",
         on_validation_error="error",
         verify_index=False,
     )
-    """
+
 
     def parsed(self) -> dd.DataFrame:
         """Parses the CSV file, applies some basic filtering, then saves the result
@@ -106,12 +104,11 @@ class AnnualReportTokens(TokenSource):
             "InvestmentDKK",
             "Rate",
             "PaymentType"
-            #InvestmentType
             ]
 
         output_columns = [
             "CVR",
-            "START_DATE",
+            "FROM_DATE",
             "PAYMENT_TYPE",
             "RATE",
             "INVESTMENT"
@@ -166,7 +163,7 @@ class AnnualReportTokens(TokenSource):
         # Filter out data and rename columns
         ddf = (ddf
             .rename(columns=dict(zip(ddf.columns, output_columns)))
-            .loc[lambda x: x.START_DATE >= self.earliest_start]
+            .loc[lambda x: x.FROM_DATE >= self.earliest_start]
         )
 
         if self.downsample:
@@ -176,7 +173,7 @@ class AnnualReportTokens(TokenSource):
 
         return ddf
     
-# use for debugging
-# if __name__ == "__main__":
-#     tokens = AnnualReportTokens()
-#     parsed_data = tokens.tokenized().compute()
+#use for debugging
+if __name__ == "__main__":
+    tokens = CapitalTokens()
+    parsed_data = tokens.tokenized().compute()

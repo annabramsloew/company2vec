@@ -24,6 +24,8 @@ from .ops import concat_columns_dask, concat_sorted
 from .serialize import DATA_ROOT, ValidationError, _jsonify
 from .source.base import Field, TokenSource
 from .source.employees import EmployeeTokens
+from .source.punits import ProductionUnitTokens
+from .source.capital import CapitalTokens
 # from .vocabulary import Vocabulary
 
 N_PARTITIONS = 43
@@ -156,8 +158,11 @@ class Corpus:
             assert is_string or is_known_cat
 
         cols = ["FROM_DATE", "SENTENCE"]
-        # if "AGE" in tokenized.columns:
-        #     cols.append("AGE")
+        
+        # Ensure the DataFrame is properly partitioned
+        tokenized = tokenized.repartition(npartitions=tokenized.npartitions)
+
+
 
         # It is a bit akwkard that we join, then split right after.
         # However it is easier to deal with strings, I think
@@ -184,6 +189,7 @@ class Corpus:
         fields_to_transform = self.fitted_fields(source)
         tokenized = source.tokenized()
         tokenized = tokenized.repartition(npartitions=N_PARTITIONS)
+        tokenized.to_parquet("test.parquet")
 
 
         for field in fields_to_transform:
@@ -230,10 +236,8 @@ class Corpus:
 
 
 if __name__ == "__main__":
-    tokensources: List[TokenSource] = [EmployeeTokens()]
-    corpus = Corpus(name="test", sources=tokensources)
+    tokensources: List[TokenSource] = [CapitalTokens()]
+    corpus = Corpus(name="test_capital", sources=tokensources)
 
     sentences = corpus.combined_sentences("train")
-    sentences.partitions[0].to_csv("/Users/nikolaibeckjensen/Desktop/Company2Vec/sentences-*.csv")
-
-
+    
