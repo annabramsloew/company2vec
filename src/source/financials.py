@@ -6,34 +6,31 @@ from typing import List
 
 import dask.dataframe as dd
 import pandas as pd
+import gc
 
 #from ..decorators import save_parquet
 from ..ops import sort_partitions
-#from ..serialize import DATA_ROOT
+from ..serialize import DATA_ROOT
 from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import dd_enrich_with_asof_values, convert_currency
 
 
-DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet(2)" / "Virk2Vec"
-#DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "Dropbox" / "DTU" / "Virk2Vec"
-
-# ------------------------------------------ FIX IMPORTS ------------------------------------------
 @dataclass
 class AnnualReportTokens(TokenSource):
     """This generates tokens based on information from the annual reports, registrations and currency datasets.
     Currently loads data from a CSV dump of the annual reports.
 
     :param input_csv: path to the Tables folder, from which data on registrations, currency rates and annual reports may be fetched.
-    :param earliest_start: The earliest start date of a hospital encounter.
+    :param earliest_start: The earliest start date of an event
     """
 
-    name: str = "financaial"
+    name: str = "annual_report"
     fields: List[FIELD_TYPE] = field(
         default_factory=lambda: [
             "COMPANY_TYPE", 
             "INDUSTRY", 
             "COMPANY_STATUS", 
-            "MUNICIPALITY", #TODO: Change
+            "MUNICIPALITY", 
             Binned("PROFIT_LOSS", prefix="PROFIT_LOSS", n_bins=100),
             Binned("EQUITY", prefix="EQUITY", n_bins=100),
             Binned("ASSETS", prefix="ASSETS", n_bins=100),
@@ -41,21 +38,20 @@ class AnnualReportTokens(TokenSource):
         ]
     )
 
-    #input_csv: Path =  Path(r"/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables") #TODO: Change back to relative import DATA_ROOT / "Tables"
+
     input_csv: Path = DATA_ROOT / "Tables"
     earliest_start: str = "01/01/2013"
 
     def _post_init__(self) -> None:
         self._earliest_start = pd.to_datetime(self.earliest_start)
 
-    """
-    @save_parquet(
-        DATA_ROOT / "processed/sources/{self.name}/tokenized",
-        on_validation_error="error",
-    )
-    """
+    
+    # @save_parquet(
+    #     DATA_ROOT / "processed/sources/{self.name}/tokenized",
+    #     on_validation_error="error",
+    # )
+    
 
-    # ------------------------------------------ TODO FIX TOKENIZED ------------------------------------------
     def tokenized(self) -> dd.DataFrame:
         """
         Loads the indexed data, then tokenizes it.
@@ -63,42 +59,61 @@ class AnnualReportTokens(TokenSource):
 
         result = (
             self.indexed()
-            .assign(
-                COMPANY_TYPE=lambda x: "CTYP_" + x.COMPANY_TYPE.map({"A/S": "AS", 
-                                                                     "ApS": "APS", #tror kun der er "APS" i data ikke "ApS"
-                                                                     "IVS": "IVS"}),
-                INDUSTRY=lambda x: "IND_" + x.INDUSTRY, 
-                COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS, #TODO: Define status mapping
-                ADDRESS=lambda x: "WMUN_" + x.ADDRESS, #TODO: Change
-            )
-            .pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
+        result = result.assign(
+                COMPANY_TYPE=lambda x: "CTYP_" + x.COMPANY_TYPE.map({"A/S": "AS", 
+                                                                     "APS": "APS", 
+                                                                     "IVS": "IVS"}, meta=('COMPANY_TYPE', 'object')),
+
+                INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not ind=="UNK" else "UNK", meta=('INDUSTRY', 'object')), 
+
+                COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS.map({
+                                                                        "NORMAL": "ACTIVE",
+                                                                        "AKTIV": "ACTIVE",
+                                                                        "UNDER REASSUMERING" : "OTHER",
+                                                                        "UNDER FRIVILLIG LIKVIDATION" : "OTHER",
+                                                                        "UNDER REKONSTRUKTION" : "DISTRESS",
+                                                                        "UNDER TVANGSOPLØSNING" : "DISTRESS",
+                                                                        "UNDER KONKURS" : "DISTRESS",
+                                                                        "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "DISSOLVED",
+                                                                        "OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING" : "DISSOLVED",
+                                                                        "OPLØST EFTER SPALTNING" : "DISSOLVED",
+                                                                        "OPLØST EFTER ERKLÆRING" : "DISSOLVED",
+                                                                        "OPLØST EFTER FUSION" : "DISSOLVED",
+                                                                        "OPLØST EFTER FRIVILLIG LIKVIDATION" : "DISSOLVED",
+                                                                        "SLETTET" : "DISSOLVED",
+                                                                        "OPLØST EFTER KONKURS" : "BANKRUPT",
+                                                                        "TVANGSOPLØST" : "BANKRUPT"
+                                                                        }, meta=('COMPANY_STATUS', 'object')), 
+                MUNICIPALITY=lambda x: "MUN_" + x.MUNICIPALITY
+            ).pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
+        #)
 
         assert isinstance(result, dd.DataFrame)
         return result
 
 
-    """
-    @save_parquet(
-        DATA_ROOT / "interim/sources/{self.name}/indexed",
-        on_validation_error="recompute",
-    )
-    """
-    # ------------------------------------------ TODO FIX TOKENIZED ------------------------------------------
-
+    
+    # @save_parquet(
+        
+    #     DATA_ROOT / "interim/sources/{self.name}/indexed",
+    #     on_validation_error="recompute",
+    # )
+    
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
         result = self.parsed().set_index("CVR")
         assert isinstance(result, dd.DataFrame)
+
         return result
 
-    """
-    @save_parquet(
-        DATA_ROOT / "interim/sources/{self.name}/parsed",
-        on_validation_error="error",
-        verify_index=False,
-    )
-    """
+    
+    # @save_parquet(
+    #     DATA_ROOT / "interim/sources/{self.name}/parsed",
+    #     on_validation_error="error",
+    #     verify_index=False,
+    # )
+    
 
     def parsed(self) -> dd.DataFrame:
         """Parses the CSV file, applies some basic filtering, then saves the result
@@ -140,9 +155,9 @@ class AnnualReportTokens(TokenSource):
         
         # Load files
         financials_csv = [file for file in path_financials.iterdir() if file.is_file() and file.suffix == '.csv']
-        registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv'] 
+        registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv']
         currency_csv = [file for file in path_currency.iterdir() if file.is_file() and file.suffix == '.csv']
-        cvr_csv = [file for file in path_cvr.iterdir() if file.is_file() and file.suffix == '.csv']
+        cvr_csv = [file for file in path_cvr.iterdir() if file.is_file() and file.suffix == '.csv'][:2]
 
         # Load data
         ddf_registrations = dd.read_csv(
@@ -197,11 +212,14 @@ class AnnualReportTokens(TokenSource):
                 "CVR": int
             }
         )
+        
 
         # filter away CVR's that are not in the lookup table from the annual report data and registration data
-        cvr_list = df_cvr['CVR'].compute()
+        cvr_list = df_cvr['CVR'].compute().tolist()[:1000]
         ddf_annualreport = ddf_annualreport.loc[ddf_annualreport['CVR'].isin(cvr_list)]
         ddf_registrations = ddf_registrations.loc[ddf_registrations['CVR'].isin(cvr_list)]
+
+
 
         # enrich the annual report with asof values from the registrations
         ddf = dd_enrich_with_asof_values(
@@ -212,20 +230,37 @@ class AnnualReportTokens(TokenSource):
             date_col_registrations='FromDate'
             )
         
+        
+        ddf.to_parquet("test.parquet")
+        print("SAVED")
+        
         # convert currency
         ddf = convert_currency(ddf, ddf_currency, 
                         amount_cols=['ProfitLoss', 'Equity', 'Assets', 'LiabilitiesAndEquity'], 
                         currency_col='Currency', 
                         date_col='PublicationDate')
+
         
         # Drop 'Currency' column, rename columns, and drop values
+        column_map = {
+            "PublicationDate":"FROM_DATE",
+            "ProfitLoss":"PROFIT_LOSS",
+            "Assets":"ASSETS",
+            "Equity":"EQUITY",
+            "LiabilitiesAndEquity":"LIABILITIES_AND_EQUITY",
+            "Industry":"INDUSTRY",
+            "CompanyType":"COMPANY_TYPE",
+            "Municipality":"MUNICIPALITY",
+            "Status":"COMPANY_STATUS"
+        }
+
+        
         ddf = (
             ddf.drop(columns=['Currency'])
-            .pipe(lambda df: df.rename(columns=dict(zip(df.columns, output_columns))))
-            .loc[lambda x: x.FROM_DATE >= self.earliest_start]
+            .rename(columns=column_map)
+            #.loc[lambda x: x.FROM_DATE >= self.earliest_start]
         )
 
-        #ddf = ddf.compute() #used for debugging
 
         if self.downsample:
             ddf = self.downsample_persons(ddf)
@@ -236,7 +271,7 @@ class AnnualReportTokens(TokenSource):
     
 
 # use for debugging
-# if __name__ == "__main__":
-#     tokens = AnnualReportTokens()
-#     parsed_data = tokens.tokenized().compute()
+if __name__ == "__main__":
+    tokens = AnnualReportTokens()
+    parsed_data = tokens.tokenized().compute()
     
