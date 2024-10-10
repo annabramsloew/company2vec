@@ -59,8 +59,7 @@ class AnnualReportTokens(TokenSource):
 
         result = (
             self.indexed()
-        )
-        result = result.assign(
+        .assign(
                 COMPANY_TYPE=lambda x: "CTYP_" + x.COMPANY_TYPE.map({"A/S": "AS", 
                                                                      "APS": "APS", 
                                                                      "IVS": "IVS"}, meta=('COMPANY_TYPE', 'object')),
@@ -87,7 +86,7 @@ class AnnualReportTokens(TokenSource):
                                                                         }, meta=('COMPANY_STATUS', 'object')), 
                 MUNICIPALITY=lambda x: "MUN_" + x.MUNICIPALITY
             ).pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
-        #)
+        )
 
         assert isinstance(result, dd.DataFrame)
         return result
@@ -155,9 +154,10 @@ class AnnualReportTokens(TokenSource):
         
         # Load files
         financials_csv = [file for file in path_financials.iterdir() if file.is_file() and file.suffix == '.csv']
+        financials_csv = financials_csv[:2]
         registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv']
         currency_csv = [file for file in path_currency.iterdir() if file.is_file() and file.suffix == '.csv']
-        cvr_csv = [file for file in path_cvr.iterdir() if file.is_file() and file.suffix == '.csv'][:2]
+        cvr_csv = [file for file in path_cvr.iterdir() if file.is_file() and file.suffix == '.csv']
 
         # Load data
         ddf_registrations = dd.read_csv(
@@ -215,7 +215,7 @@ class AnnualReportTokens(TokenSource):
         
 
         # filter away CVR's that are not in the lookup table from the annual report data and registration data
-        cvr_list = df_cvr['CVR'].compute().tolist()[:1000]
+        cvr_list = df_cvr['CVR'].compute()#.tolist()#[:1000]
         ddf_annualreport = ddf_annualreport.loc[ddf_annualreport['CVR'].isin(cvr_list)]
         ddf_registrations = ddf_registrations.loc[ddf_registrations['CVR'].isin(cvr_list)]
 
