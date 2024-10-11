@@ -152,7 +152,7 @@ class AnnualReportTokens(TokenSource):
                 "EquityPct": float
             },
             blocksize="256MB",
-        )
+        ).compute()
 
         ddf_registrations = dd.read_csv(
             registrations_csv,
@@ -166,7 +166,7 @@ class AnnualReportTokens(TokenSource):
                 "NewValue": str
             },
             blocksize="256MB",
-        )
+        ).compute()
 
         ddf_employee = dd.read_csv(
             employee_csv,
@@ -179,7 +179,7 @@ class AnnualReportTokens(TokenSource):
                 "EmployeeCounts": int
             },
             blocksize="256MB",
-        )
+        ).compute()
 
         df_cvr = dd.read_csv(
             cvr_csv,
@@ -282,16 +282,12 @@ class AnnualReportTokens(TokenSource):
         del ddf_employee
 
         #concatenate the internal and external owners
-        ddf_owners = dd.concat([ddf_owners_internal, ddf_owners_external])
+        ddf_owners = dd.concat([dd.from_pandas(ddf_owners_internal), dd.from_pandas(ddf_owners_external)])
 
         # Rename columns
         ddf = (ddf_owners
             .rename(columns=dict(zip(ddf_owners.columns, output_columns)))
         )
-
-        #check min and max date
-        #min_date = ddf['FROM_DATE'].min().compute()
-        #max_date = ddf['FROM_DATE'].max().compute()
 
         #check result
         #ddf = ddf.compute()
