@@ -228,4 +228,29 @@ def active_participants_per_year(df: dd.DataFrame) -> dd.DataFrame:
     # Convert the results into a Dask DataFrame
     results_dd = dd.from_pandas(results, npartitions=1)
 
-    return result_dd
+    return results_dd
+
+
+def bin_share(share):
+    if pd.isna(share):
+        return "SHARE_NA"
+    elif share < 0.1:
+        return "SHARE_0_10"
+    elif share < 0.2:
+        return "SHARE_10_20"
+    elif share < 0.3:
+        return "SHARE_20_30"
+    elif share < 0.4:
+        return "SHARE_30_40"
+    elif share < 0.5:
+        return "SHARE_40_50"
+    elif share < 0.6:
+        return "SHARE_50_60"
+    elif share < 0.7:
+        return "SHARE_60_70"
+    elif share < 0.8:
+        return "SHARE_70_80"
+    elif share < 0.9:
+        return "SHARE_80_90"
+    else:
+        return "SHARE_90_100"

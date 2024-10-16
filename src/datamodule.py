@@ -26,6 +26,9 @@ from .source.base import Field, TokenSource
 from .source.employees import EmployeeTokens
 from .source.punits import ProductionUnitTokens
 from .source.capital import CapitalTokens
+from .source.financials import AnnualReportTokens
+from .source.ownership import OwnershipTokens
+from .source.leadership_iter1 import LeadershipTokens
 # from .vocabulary import Vocabulary
 
 N_PARTITIONS = 43
@@ -164,11 +167,20 @@ class Corpus:
 
 
 
-        # It is a bit akwkard that we join, then split right after.
-        # However it is easier to deal with strings, I think
-        sentences = tokenized.astype({x: "string" for x in field_labels}).assign(
-            SENTENCE=concat_columns_dask(tokenized, columns=list(field_labels))
-        )[cols]
+        # an extra aggregation step is required for leadership sentences
+        if source.name == 'leadership':
+            def concatenate_columns(df):
+                df['SENTENCE'] = " " + df['PARTICIPANT_TYPE'] + " " + df['EXPERIENCE'].astype(str)
+                return df
+
+            # Apply the function using map_partitions
+            tokenized = tokenized.map_partitions(concatenate_columns).drop(columns=['PARTICIPANT_TYPE','EXPERIENCE'])
+            sentences = tokenized.groupby(['FROM_DATE','CVR']).sum().reset_index().set_index('CVR')[cols]
+
+        else:
+            sentences = tokenized.astype({x: "string" for x in field_labels}).assign(
+                SENTENCE=concat_columns_dask(tokenized, columns=list(field_labels))
+            )[cols]
 
         assert isinstance(sentences, dd.DataFrame)
 
@@ -189,12 +201,10 @@ class Corpus:
         fields_to_transform = self.fitted_fields(source)
         tokenized = source.tokenized()
         tokenized = tokenized.repartition(npartitions=N_PARTITIONS)
-        tokenized.to_parquet("test.parquet")
 
 
         for field in fields_to_transform:
             tokenized[field.field_label] = field.transform(tokenized[field.field_label])
-
 
         assert isinstance(tokenized, dd.DataFrame)
         return tokenized
@@ -236,8 +246,8 @@ class Corpus:
 
 
 if __name__ == "__main__":
-    tokensources: List[TokenSource] = [CapitalTokens()]
-    corpus = Corpus(name="test_capital", sources=tokensources)
+    tokensources: List[TokenSource] = [LeadershipTokens()]
+    corpus = Corpus(name="test_leadership", sources=tokensources)
 
     sentences = corpus.combined_sentences("train")
     

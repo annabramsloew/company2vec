@@ -3,12 +3,11 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
-
 import dask.dataframe as dd
 import pandas as pd
 import gc
 
-#from ..decorators import save_parquet
+from ..decorators import save_parquet
 from ..ops import sort_partitions
 from ..serialize import DATA_ROOT
 from .base import FIELD_TYPE, TokenSource, Binned
@@ -46,10 +45,10 @@ class AnnualReportTokens(TokenSource):
         self._earliest_start = pd.to_datetime(self.earliest_start)
 
     
-    # @save_parquet(
-    #     DATA_ROOT / "processed/sources/{self.name}/tokenized",
-    #     on_validation_error="error",
-    # )
+    @save_parquet(
+         DATA_ROOT / "processed/sources/{self.name}/tokenized",
+         on_validation_error="error",
+    )
     
 
     def tokenized(self) -> dd.DataFrame:
@@ -64,7 +63,7 @@ class AnnualReportTokens(TokenSource):
                                                                      "APS": "APS", 
                                                                      "IVS": "IVS"}, meta=('COMPANY_TYPE', 'object')),
 
-                INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not ind=="UNK" else "UNK", meta=('INDUSTRY', 'object')), 
+                INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not pd.isna(ind) else "UNK", meta=('INDUSTRY', 'object')),
 
                 COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS.map({
                                                                         "NORMAL": "ACTIVE",
@@ -93,11 +92,11 @@ class AnnualReportTokens(TokenSource):
 
 
     
-    # @save_parquet(
+    @save_parquet(
         
-    #     DATA_ROOT / "interim/sources/{self.name}/indexed",
-    #     on_validation_error="recompute",
-    # )
+         DATA_ROOT / "interim/sources/{self.name}/indexed",
+         on_validation_error="recompute",
+    )
     
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
@@ -107,11 +106,11 @@ class AnnualReportTokens(TokenSource):
         return result
 
     
-    # @save_parquet(
-    #     DATA_ROOT / "interim/sources/{self.name}/parsed",
-    #     on_validation_error="error",
-    #     verify_index=False,
-    # )
+    @save_parquet(
+         DATA_ROOT / "interim/sources/{self.name}/parsed",
+         on_validation_error="error",
+         verify_index=False,
+    )
     
 
     def parsed(self) -> dd.DataFrame:
@@ -154,7 +153,6 @@ class AnnualReportTokens(TokenSource):
         
         # Load files
         financials_csv = [file for file in path_financials.iterdir() if file.is_file() and file.suffix == '.csv']
-        financials_csv = financials_csv[:2]
         registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv']
         currency_csv = [file for file in path_currency.iterdir() if file.is_file() and file.suffix == '.csv']
         cvr_csv = [file for file in path_cvr.iterdir() if file.is_file() and file.suffix == '.csv']
@@ -172,8 +170,12 @@ class AnnualReportTokens(TokenSource):
                 "NewValue": str
             },
             blocksize="256MB"
-        )
-        
+        ).compute()
+
+
+
+
+
         ddf_annualreport = dd.read_csv(
             financials_csv,
             usecols=columns_annualreport,
@@ -189,7 +191,7 @@ class AnnualReportTokens(TokenSource):
                 "LiabilitiesAndEquity": float,
             },
             blocksize="256MB"
-        )
+        ).compute()
         
         ddf_currency = dd.read_csv(
             currency_csv,
@@ -211,7 +213,7 @@ class AnnualReportTokens(TokenSource):
             dtype={
                 "CVR": int
             }
-        )
+        ).repartition(npartitions=2)
         
 
         # filter away CVR's that are not in the lookup table from the annual report data and registration data
@@ -220,7 +222,7 @@ class AnnualReportTokens(TokenSource):
         ddf_registrations = ddf_registrations.loc[ddf_registrations['CVR'].isin(cvr_list)]
 
 
-
+        print("START ENRICH")
         # enrich the annual report with asof values from the registrations
         ddf = dd_enrich_with_asof_values(
             ddf_annualreport, 
@@ -230,8 +232,7 @@ class AnnualReportTokens(TokenSource):
             date_col_registrations='FromDate'
             )
         
-        
-        ddf.to_parquet("test.parquet")
+        ddf = dd.from_pandas(ddf)
         print("SAVED")
         
         # convert currency
@@ -258,8 +259,15 @@ class AnnualReportTokens(TokenSource):
         ddf = (
             ddf.drop(columns=['Currency'])
             .rename(columns=column_map)
-            #.loc[lambda x: x.FROM_DATE >= self.earliest_start]
+            .loc[lambda x: x.FROM_DATE >= self.earliest_start]
         )
+
+        ddf = ddf.fillna({
+            'COMPANY_TYPE': 'UNK',
+            'INDUSTRY': 'UNK',
+            'COMPANY_STATUS': 'UNK',
+            'MUNICIPALITY': 'UNK',
+        })
 
 
         if self.downsample:
@@ -271,7 +279,8 @@ class AnnualReportTokens(TokenSource):
     
 
 # use for debugging
-if __name__ == "__main__":
-    tokens = AnnualReportTokens()
-    parsed_data = tokens.tokenized().compute()
+# if __name__ == "__main__":
+#     tokens = AnnualReportTokens()
+#     parsed_data = tokens.tokenized()
+#     print("FINISHED")
     
