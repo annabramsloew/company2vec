@@ -19,7 +19,7 @@ from typing import (
     cast,
     get_args,
 )
-from .logging_config import log
+from .logging_config import log, DATA_ROOT
 
 import dask
 import dask.dataframe as dd
@@ -28,12 +28,7 @@ import pandas as pd
 from src.utils import stringify
 from datetime import datetime
 
-if Path.home().name == "nikolaibeckjensen":
-    DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet" / "Virk2Vec" / "data"
-elif Path.home().name == "annabramslow":
-    DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet(2)" / "Virk2Vec" / "data"
-else: 
-    DATA_ROOT = Path.home() / "data"
+
 
 T = TypeVar("T")
 

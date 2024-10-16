@@ -10,7 +10,7 @@ import pandas as pd
 
 from ..decorators import save_parquet
 from ..ops import sort_partitions
-from ..serialize import DATA_ROOT
+from ..logging_config import DATA_ROOT
 from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import active_participants_per_year
 

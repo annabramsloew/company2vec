@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 import dask.dataframe as dd
-from ..serialize import DATA_ROOT
+from ..logging_config import DATA_ROOT
 
 # df_employee = pd.read_csv(r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables/EmployeeCounts/chunk0.csv', index_col=0)
 # df_registrations = pd.read_csv(r'/Users/nikolaibeckjensen/Dropbox/Virk2Vec/Tables/Registrations/chunk0.csv', index_col=0)

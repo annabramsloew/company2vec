@@ -10,6 +10,15 @@ elif Path.home().name == "annabramslow":
 else: 
     LOG_ROOT = Path.home() / "data"
 
+
+if Path.home().name == "nikolaibeckjensen":
+    DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet" / "Virk2Vec" / "data"
+elif Path.home().name == "annabramslow":
+    DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet(2)" / "Virk2Vec" / "data"
+else: 
+    DATA_ROOT = Path.home() / "data"
+
+
 start_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_file_path = LOG_ROOT / f"serialize_{start_datetime}.log"
 
