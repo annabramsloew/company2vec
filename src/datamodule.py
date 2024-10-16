@@ -1,11 +1,11 @@
 # import enum
 # import logging
-# import pickle
+import pickle
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from typing_extensions import dataclass_transform
-from .logging_config import log
+from .logging_config import log, DATA_ROOT
 import dask
 import dask.dataframe as dd
 import pandas as pd
@@ -21,14 +21,14 @@ import numpy as np
 from .decorators import save_parquet, save_pickle
 from .ops import concat_columns_dask, concat_sorted
 # from .populations.base import Population
-from .serialize import DATA_ROOT, ValidationError, _jsonify
+from .serialize import ValidationError, _jsonify
 from .source.base import Field, TokenSource
 from .source.employees import EmployeeTokens
 from .source.punits import ProductionUnitTokens
 from .source.capital import CapitalTokens
 from .source.financials import AnnualReportTokens
 from .source.ownership import OwnershipTokens
-from .source.leadership_iter1 import LeadershipTokens
+from .source.leadership import LeadershipTokens
 # from .vocabulary import Vocabulary
 
 N_PARTITIONS = 43
@@ -225,15 +225,23 @@ class Corpus:
         tokenized = source.tokenized()
         fields = source.fields
         fields_to_fit = [field for field in fields if isinstance(field, Field)]
-
+        
         if self.population is not None:
             ids = self.population.data_split().train
-            for field in fields_to_fit:
-                field.fit(tokenized.loc[lambda x: x.index.isin(ids)])
-        else: 
-            for field in fields_to_fit:
+            tokenized.loc[lambda x: x.index.isin(ids)]
+
+        for field in fields_to_fit:
+            print(field.field_label)
+            # ensure that the employee count tokens in ownership utilize samme binning as employee sentences
+            if source.name == 'ownership' and field.field_label == "EMPLOYEE_COUNT":
+                read_path = DATA_ROOT / "binning" / "nbins100_EMPLOYEE_COUNT.pkl"
+                print("Using pre-fitted bins for EMPLOYEE_COUNT from file", read_path)
+                with open(read_path, "rb") as f:
+                    field.bins_ = pickle.load(f)
+
+            else:
                 field.fit(tokenized)
-                
+                    
         return fields_to_fit
 
     def prepare(self) -> None:
@@ -246,8 +254,8 @@ class Corpus:
 
 
 if __name__ == "__main__":
-    tokensources: List[TokenSource] = [LeadershipTokens()]
-    corpus = Corpus(name="test_leadership", sources=tokensources)
+    tokensources: List[TokenSource] = [OwnershipTokens()]
+    corpus = Corpus(name="test_ownership", sources=tokensources)
 
     sentences = corpus.combined_sentences("train")
     

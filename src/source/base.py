@@ -2,12 +2,14 @@
 
 from dataclasses import dataclass
 from typing import List, Union
-
+from ..logging_config import DATA_ROOT
 import dask.array as da
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import time
+import pickle
+import os
 
 
 @dataclass
@@ -136,6 +138,14 @@ class Binned(Field):
         q = np.linspace(0.0, 1.0, self.n_bins - 1, endpoint=True)
         quantiles = x[self.field_label].quantile(q=q).compute().tolist()
         self.bins_ = quantiles
+
+        # save the bins such that they can be used by other instances
+        filename = f"nbins{self.n_bins}_{self.field_label}.pkl"
+        filepath = DATA_ROOT / "binning" / filename
+        with open(filepath, "wb") as f:
+            pickle.dump(self.bins_, f)
+        print(f"Saved bins to {filepath}")
+
 
 
 FIELD_TYPE = Union[str, Field]
