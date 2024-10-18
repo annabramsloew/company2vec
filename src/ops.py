@@ -1,6 +1,7 @@
 from typing import List, Optional, Sequence
 from .logging_config import log
 import dask.dataframe as dd
+from dask.dataframe.core import DataFrame as dd_DataFrame_core
 #import numba
 import numpy as np
 import pandas as pd
@@ -14,18 +15,18 @@ def _sort_using_index(data: pd.DataFrame, columns: Sequence[str]) -> pd.DataFram
 def sort_partitions(data: dd.DataFrame, columns: Sequence[str]) -> dd.DataFrame:
     #log.debug("sort_partitions:", [col for col in columns])
     result = data.map_partitions(_sort_using_index, columns=columns)
-    assert isinstance(result, dd.DataFrame)
+    assert isinstance(result, dd.DataFrame) or isinstance(result, dd_DataFrame_core)
     return result
 
 
 def concat_sorted(
-    dfs: List[dd.DataFrame], columns: Optional[List[str]], partition_size: str = "256MB"
+    dfs: List[dd.DataFrame], columns: Optional[List[str]], partition_size: str = "128MB"
 ) -> dd.DataFrame:
 
     assert all(df.known_divisions for df in dfs)
 
     result = (
-        dd.multi.concat(dfs, interleave_partitions=True)  # this combines
+        dd.concat(dfs, interleave_partitions=True)  # this combines
         .pipe(sort_partitions, columns=columns)
         .repartition(partition_size=partition_size)
     )

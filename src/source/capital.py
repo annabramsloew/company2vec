@@ -174,6 +174,6 @@ class CapitalTokens(TokenSource):
         return ddf
     
 #use for debugging
-if __name__ == "__main__":
-    tokens = CapitalTokens()
-    parsed_data = tokens.tokenized().compute()
+# if __name__ == "__main__":
+#     tokens = CapitalTokens()
+#     parsed_data = tokens.tokenized().compute()

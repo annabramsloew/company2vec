@@ -63,7 +63,7 @@ class AnnualReportTokens(TokenSource):
                                                                      "APS": "APS", 
                                                                      "IVS": "IVS"}, meta=('COMPANY_TYPE', 'object')),
 
-                INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not pd.isna(ind) else "UNK", meta=('INDUSTRY', 'object')),
+                INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not ind=="UNK" else "UNK", meta=('INDUSTRY', 'object')),
 
                 COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS.map({
                                                                         "NORMAL": "ACTIVE",

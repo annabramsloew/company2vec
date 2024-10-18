@@ -337,6 +337,6 @@ class LeadershipTokens(TokenSource):
     
 
 # Used for debugging
-if __name__ == "__main__":
-    report_tokens = LeadershipTokens()
-    report_tokens.tokenized()
+# if __name__ == "__main__":
+#     report_tokens = LeadershipTokens()
+#     report_tokens.tokenized()

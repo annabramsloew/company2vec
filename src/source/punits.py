@@ -53,9 +53,9 @@ class ProductionUnitTokens(TokenSource):
         result = (
             self.indexed()
             .assign(
-                ACTION=lambda x: x.ACTION.map({"entry": "ACT_OPEN", "exit": "ACT_CLOSE"}, meta=('ACTION', 'object')),
-                INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not ind=="UNK" else "UNK", meta=('INDUSTRY', 'object')), 
-                MUNICIPALITY=lambda x: "WMUN_" + x.MUNICIPALITY
+            ACTION=lambda x: x.ACTION.map({"Start": "ACT_OPEN", "End": "ACT_CLOSE"}, meta=('ACTION', 'object')),
+            INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not ind == "UNK" else ind, meta=('INDUSTRY', 'object')), 
+            MUNICIPALITY=lambda x: x.MUNICIPALITY.apply(lambda mun: "MUN_" + mun if mun != "UNK" else mun, meta=('MUNICIPALITY', 'object'))
             )
         )
         assert isinstance(result, dd.DataFrame)
@@ -137,10 +137,19 @@ class ProductionUnitTokens(TokenSource):
         # filter away CVR's that are not in the lookup table from the annual report data and registration data
         cvr_list = df_cvr['CVR'].compute()
         ddf_punits = ddf_punits.loc[ddf_punits['CVR'].isin(cvr_list)]
+        ddf_punits['Date'] = dd.to_datetime(ddf_punits['Date'], errors='coerce')
 
         # Filter out data and rename columns
+
+        column_map = {
+            "Date": "FROM_DATE",
+            "ChangeType": "ACTION",
+            "Municipality": "MUNICIPALITY",
+            "Industry": "INDUSTRY"
+        }
+        
         ddf = (ddf_punits
-            .rename(columns=dict(zip(ddf_punits.columns, output_columns)))
+            .rename(columns=column_map)
             .loc[lambda x: x.FROM_DATE >= self.earliest_start]
         )
 
@@ -159,6 +168,6 @@ class ProductionUnitTokens(TokenSource):
         return ddf
     
 #use for debugging
-if __name__ == "__main__":
-    tokens = ProductionUnitTokens()
-    parsed_data = tokens.tokenized().compute()
+# if __name__ == "__main__":
+#     tokens = ProductionUnitTokens()
+#     parsed_data = tokens.tokenized().compute()

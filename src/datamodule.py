@@ -10,17 +10,18 @@ import dask
 import dask.dataframe as dd
 import pandas as pd
 import numpy as np
-# import pytorch_lightning as pl
+import pytorch_lightning as pl
 # import torch
 # from pandas.tseries.offsets import MonthEnd
-# from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 # from ..tasks.base import Task, collate_encoded_documents
 # from .sampler import FixedSampler
 # from .dataset import DocumentDataset, ShardedDocumentDataset
 from .decorators import save_parquet, save_pickle
 from .ops import concat_columns_dask, concat_sorted
-# from .populations.base import Population
+from .populations.base import Population
+from .populations.from_annualreports import FromAnnualReports
 from .serialize import ValidationError, _jsonify
 from .source.base import Field, TokenSource
 from .source.employees import EmployeeTokens
@@ -29,9 +30,9 @@ from .source.capital import CapitalTokens
 from .source.financials import AnnualReportTokens
 from .source.ownership import OwnershipTokens
 from .source.leadership import LeadershipTokens
-# from .vocabulary import Vocabulary
+from .vocabulary import Vocabulary, CorpusVocabulary
 
-N_PARTITIONS = 43
+N_PARTITIONS = 20
 
 
 @dataclass
@@ -56,11 +57,11 @@ class Corpus:
     name: str
 
     sources: List[TokenSource]
-    #TODO: population: Population
+    population: Population
 
     reference_date: str = "2008-01-01" 
     threshold: str = "2016-01-01"
-    population: Optional[Any] = None # TODO: remove for actual population
+
 
     def __post_init__(self) -> None:
 
@@ -97,18 +98,23 @@ class Corpus:
 
         """
 
-        #population: pd.DataFrame = self.population.population()
-        #data_split = getattr(self.population.data_split(), split)
-
-
-
+        population: pd.DataFrame = self.population.population().drop(columns=['FROM_DATE'])
+        data_split = getattr(self.population.data_split(), split)
+        # Convert data_split to a DataFrame
+        data_split_df = pd.DataFrame(data_split, columns=['CVR'])
         sentences_parts = [self.sentences(s) for s in self.sources]
-        combined_sentences = concat_sorted([sp for sp in sentences_parts], columns=["FROM_DATE"])
 
-        # combined_sentences = concat_sorted(
-        #     [sp.loc[lambda x: x.index.isin(data_split)] for sp in sentences_parts],
-        #     columns=["START_DATE"],
-        # ).join(population)
+        combined_sentences = [
+            sp.merge(data_split_df, left_index=True, right_on='CVR', how='inner').drop(columns=['CVR'])
+            for sp in sentences_parts
+        ]
+        
+        combined_sentences = concat_sorted(
+            combined_sentences,
+            columns=["FROM_DATE"],
+        )
+        
+        combined_sentences = combined_sentences.join(population)
 
         # # Fix age from sources without age using birthday
         # isna = combined_sentences.AGE.isna()
@@ -163,7 +169,7 @@ class Corpus:
         cols = ["FROM_DATE", "SENTENCE"]
         
         # Ensure the DataFrame is properly partitioned
-        tokenized = tokenized.repartition(npartitions=tokenized.npartitions)
+        tokenized = tokenized.repartition(npartitions=N_PARTITIONS)
 
 
 
@@ -221,28 +227,23 @@ class Corpus:
         """
         # use only population ids id population has been initialized
 
-
-        tokenized = source.tokenized()
+        ids = self.population.data_split().train
+        ids = pd.DataFrame(ids, columns=['CVR'])
+        tokenized = source.tokenized().merge(ids, left_index=True, right_on='CVR', how='inner').drop(columns=['CVR'])
         fields = source.fields
         fields_to_fit = [field for field in fields if isinstance(field, Field)]
-        
-        if self.population is not None:
-            ids = self.population.data_split().train
-            tokenized.loc[lambda x: x.index.isin(ids)]
 
         for field in fields_to_fit:
-            print(field.field_label)
-            # ensure that the employee count tokens in ownership utilize samme binning as employee sentences
+
             if source.name == 'ownership' and field.field_label == "EMPLOYEE_COUNT":
                 read_path = DATA_ROOT / "binning" / "nbins100_EMPLOYEE_COUNT.pkl"
                 print("Using pre-fitted bins for EMPLOYEE_COUNT from file", read_path)
                 with open(read_path, "rb") as f:
                     field.bins_ = pickle.load(f)
-
             else:
                 field.fit(tokenized)
-                    
         return fields_to_fit
+        
 
     def prepare(self) -> None:
         """Prepares each dataset split"""
@@ -253,9 +254,237 @@ class Corpus:
 
 
 
-if __name__ == "__main__":
-    tokensources: List[TokenSource] = [OwnershipTokens()]
-    corpus = Corpus(name="test_ownership", sources=tokensources)
+# @dataclass
+# class C2VDataModule(pl.LightningDataModule):
+#     """
+#     company2vec data processing pipeline. The data is generated based on a corpus
+#     and a task. The generated data is stored in /processed/<corpus>/<task>, with
+#     subfolders corresponding to each data split. The remaining parameters are given
+#     to :class:`torch.utils.data.DataLoader`.
 
-    sentences = corpus.combined_sentences("train")
+#     :param corpus: The corpus to generate data from.
+#     :param vocabulary: Vocabulary to use.
+#     :param task: Task to generate data for.
+
+#     :param batch_size: Batch size
+#     :param num_workers: Number of data loading workers
+#     :param persisten_worksers: Whether to persist workers
+#     :param pin_memory: Whether to pin memory
+
+#     """
+
+#     # Data components
+#     corpus: Corpus
+#     vocabulary: Vocabulary
+#     task: Task
+
+#     # Data loading params
+#     batch_size: int = 8
+#     num_workers: int = 2
+#     persistent_workers: bool = False
+#     pin_memory: bool = False
+#     subset: bool = False
+#     subset_id: bool = 0 #max 2
+
+#     def __post_init__(self) -> None:
+#         super().__init__()
+#         assert self.name != ""
+#         self.task.register(self)
+
+#     @property
+#     def dataset_root(self) -> Path:
+#         """Return the dataset root according to the corpus and task names"""
+#         return DATA_ROOT / "processed" / "datasets" / self.corpus.name / self.task.name
+
+#     def prepare(self) -> None:
+#         """Calls :meth:`prepare_data` to prepare the data."""
+#         self.prepare_data()
+#         self.setup()
+
+#     def _arguments(self) -> Dict[str, Any]:
+#         """Since we dont want to include the data loading parameters, when validating
+#         the saved datasets with the current parameters, we instead supply the arguments
+#         of the corpus and task from here."""
+
+#         return {
+#             "corpus": _jsonify(self.corpus),
+#             "vocabulary": _jsonify(self.vocabulary),
+#             "task": _jsonify(self.task),
+#         }
+
+#     def prepare_data(self) -> None:
+#         """Checks whether the data already exists.
+#         If not, then prepares the corpus and each data split using
+#         :meth:`prepare_data_split`
+#         """
+#         arg_path = self.dataset_root / "_arguments"
+#         try:
+#             with open(arg_path, "rb") as f:
+#                 arguments = pickle.load(f)
+#                 print(arg_path)
+#             if arguments == self._arguments():
+#                 return
+#             else:
+#                 log.warning("Arguments do not correspond to the recorded ones")
+#                 return
+#                 raise ValidationError
+#         except (EOFError, FileNotFoundError):
+#             pass
+
+#         log.info("Preparing corpus...")
+#         self.corpus.prepare()
+#         log.info("Prepared corpus.")
+
+#         log.info("Preparing vocabulary...")
+#         self.vocabulary.prepare()
+#         log.info("Prepared vocabulary.")
+#         log.info("\tVocabulary size: %s" %self.vocabulary.size())
+
+#         log.info("Preparing datasets...")
+#         self.dataset_root.mkdir(exist_ok=True, parents=True)
+#         dask.compute(
+#             self.prepare_data_split("train"),
+#             self.prepare_data_split("val"),
+#             self.prepare_data_split("test"),
+#         )
+#         log.info("Prepared datasets.")
+
+#         with open(self.dataset_root / "_arguments", "wb") as f:
+#             pickle.dump(self._arguments(), f)
+
+#     def prepare_data_split(self, split: str) -> dd.Series:
+#         """Prepares the dataset for some split (train/val/test).
+
+#         Loads the combined sentences of the corpus, then for each parquet partition,
+#         filters according to the split and using pandas group_by, for each PERSON_ID
+#         calls the :meth:`get_document` method of :attr:`task` to get the
+#         person documents. The resulting list of documents then gets saved using
+#         :class:`src.data_new.dataset.DocumentDataset`.
+
+#         :return: Returns a :class:`dask.dataframe.Series` with a single :code:`True`
+#             for each partition. This is only meant for use with :func:`dask.compute`,
+#             so that we can apply this step for all splits in parallel.
+#         """
+
+#         data = self.corpus.combined_sentences(split)
+#         N = data.npartitions
+
+#         def process_partition(
+#             partition: pd.DataFrame, partition_info: Optional[Dict[str, int]] = None
+#         ) -> bool:
+#             """Process a single sentence data partition into a
+#             :class:`src.data_new.dataset.DocumentDataset`
+#             """
+
+#             assert partition_info is not None
+
+#             from math import log10
+
+#             file_name = str(partition_info["number"]).zfill(int(log10(N)) + 1) + ".hdf5"
+#             path = self.dataset_root / split / file_name
+#             log.debug(
+#                 "Processing partition %s_%d to %s",
+#                 split,
+#                 partition_info["number"],
+#                 path,
+#             )
+
+#             records = (
+#                 partition.groupby(level="PERSON_ID")
+#                 .apply(self.task.get_document)
+#                 .to_list()
+#             )
+
+#             DocumentDataset(file=path).save_data(records)
+            
+#             try:
+#                 if N < 2:
+#                     pass
+#                 elif partition_info["number"]%(N//10) == 1:
+#                     log.info(
+#                         "\t%s out of %s %s partitions completed", 
+#                         partition_info["number"],
+#                         N,
+#                         split,
+#                     )
+#             except:
+#                 log.warning("Partitioning complited: %s"  %split)
+
+#             return True
+
+#         result = data.map_partitions(process_partition, meta=(None, bool))
+#         assert isinstance(result, dd.Series)
+
+#         return result
+
+#     def get_dataset(self, split: str, train_preprocessor: bool = True) -> Dataset:
+#         """Instantiates the dataset for the split in question using the preprocessor
+#         from :attr:`task`
+#         """
+#         if train_preprocessor:  preprocessor = self.task.get_preprocessor(is_train=split == "train")
+#         else: preprocessor = self.task.get_preprocessor(is_train=split == "val")
+#         dataset = ShardedDocumentDataset(
+#             directory=self.dataset_root / split, 
+#             transform=preprocessor,
+#         )
+#         return dataset
+
+#     def setup(self, stage: Optional[str] = None) -> None:
+#         """Instantiates the datasets relevant to the given stage"""
+#         if stage == "fit" or stage is None:
+#             self.train = self.get_dataset("train")
+#             self.val = self.get_dataset("val")
+#         if stage == "test" or stage is None:
+#             self.test = self.get_dataset("test")
+
+#     # TODO: vvv Consider moving this stuff to the task instead vvv
+    
+#     def get_dataloader(self, dataset: Dataset, shuffle: bool = True) -> DataLoader:
+#         """Instantiaties and return a dataloader for the given dataset using the
+#         parameters of the module"""
+#         return DataLoader(
+#             dataset,
+#             batch_size=self.batch_size,
+#             num_workers=self.num_workers,
+#             shuffle=shuffle,
+#             collate_fn=collate_encoded_documents,
+#             generator=torch.Generator(),
+#             pin_memory=self.pin_memory,
+#             persistent_workers=self.persistent_workers,
+#         )
+
+#     def train_dataloader(self) -> DataLoader:
+#         """Returns the training dataloader"""
+#         if self.subset:
+#             assert self.subset_id < 3
+#             log.info("Subset %s" %self.subset_id)
+#             idx = [i for i in range(len(self.train)) if i%3 == self.subset_id]
+#             log.info("First ID: %s Total records: %s" %(idx[0], len(idx)))
+#             self.train = torch.utils.data.Subset(self.train, idx)
+#         return self.get_dataloader(self.train, shuffle=True)
+
+#     def val_dataloader(self) -> DataLoader:
+#         """Returns the validation dataloader"""
+#         return self.get_dataloader(self.val, shuffle=False)
+
+#     def test_dataloader(self) -> DataLoader:
+#         """Returns the test dataloader"""
+#         return self.get_dataloader(self.test, shuffle=False)
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    corpus = Corpus(name="test_multiple", 
+                    sources = [ProductionUnitTokens(), AnnualReportTokens()],
+                    population = FromAnnualReports(token_data=AnnualReportTokens())
+    )
+    corpus.prepare()
+    vocab = CorpusVocabulary(corpus=corpus, name='test_vocab').prepare()
+
+
     

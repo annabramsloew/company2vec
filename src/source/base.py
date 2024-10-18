@@ -120,10 +120,13 @@ class Binned(Field):
         dtype = pd.CategoricalDtype(categories)
         
         result = tmp_frame["_digitized"].rename(name).astype(dtype)
+        result = result.repartition(npartitions=20)
         
         # compute the number of partitions
         n_partitions = len(result.divisions) - 1
         print(f"------> Number of partitions: {n_partitions}")
+
+        
 
         assert isinstance(result, dd.Series), "Expected a dask Series"
         return result
