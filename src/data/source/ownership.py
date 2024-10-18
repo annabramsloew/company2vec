@@ -55,9 +55,9 @@ class OwnershipTokens(TokenSource):
         result = (
             self.indexed()
             .assign(
-                OWNER_TYPE=lambda x: "OTYP_" + x.OWNER_TYPE.map({'EXTERNAL' : "EXT", "INTERNAL": "INT"}, meta=('OWNER_TYPE', 'object')), #OTYP : Ownership Type
+                OWNER_TYPE=lambda x: x.OWNER_TYPE.map({'EXTERNAL' : "OTYP_EXT", "INTERNAL": "OTYP_INT", "[UNK]":"[UNK]"}, meta=('OWNER_TYPE', 'object')), #OTYP : Ownership Type
                 SHARE=lambda x: x.SHARE.apply(bin_share, meta=('SHARE', 'object')),
-                INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not pd.isna(ind) else "UNK", meta=('INDUSTRY', 'object'))
+                INDUSTRY=lambda x: x.INDUSTRY.apply(lambda ind: "IND_" + ind[:4] if ind != "[UNK]" else "[UNK]", meta=('INDUSTRY', 'object'))
             ).pipe(sort_partitions, columns=["FROM_DATE"])[
                 ["FROM_DATE", *self.field_labels()]
             ]
@@ -287,8 +287,8 @@ class OwnershipTokens(TokenSource):
         )
 
         ddf = ddf.fillna({
-            'INDUSTRY': 'UNK',
-            'EMPLOYEE_COUNT': 0
+            'INDUSTRY': '[UNK]',
+            'OWNER_TYPE': '[UNK]'
         }).dropna(subset=['SHARE'])
 
         

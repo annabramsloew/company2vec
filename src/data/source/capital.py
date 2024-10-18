@@ -62,6 +62,7 @@ class CapitalTokens(TokenSource):
                                                             "ved indskud af bestemmende kapitalpost" : "PAY_MERGER",
                                                             "ved indskud af bestående virksomhed": "PAY_MERGER",
                                                             "ved ombytning af konvertible gældsbreve": "PAY_DEBT",
+                                                            '[UNK]': '[UNK]'
                                                             }, meta=('PAYMENT_TYPE', 'object')
                                                            )
             )
@@ -103,7 +104,8 @@ class CapitalTokens(TokenSource):
             "Date",
             "InvestmentDKK",
             "Rate",
-            "PaymentType"
+            "PaymentType",
+            "InvestmentType"
             ]
 
         output_columns = [
@@ -133,8 +135,8 @@ class CapitalTokens(TokenSource):
                 "Date": str,
                 "InvestmentDKK": float,
                 "Rate": float,
-                "PaymentType": str #,
-                #"InvestmentType": str
+                "PaymentType": str,
+                "InvestmentType": str
             },
             blocksize="256MB",
             lineterminator='\n'
@@ -154,17 +156,25 @@ class CapitalTokens(TokenSource):
         
         # Handle data types and compute total investment, multiply by -1 if 'InvestmentType' is 'decrease'   
         ddf = (ddf_capital
+            .loc[ddf_capital["InvestmentType"] == 'Kapitalforhøjelse']
             .assign(Date=lambda df: dd.to_datetime(df["Date"], errors='coerce', format='%d-%m-%Y'))
             .assign(Investment=lambda df: df["InvestmentDKK"] * (df["Rate"] / 100))
-            #.assign(Investment=lambda df: df["Investment"] * df["InvestmentType"].map({'decrease': -1}).fillna(1))
-            .drop(columns=['InvestmentDKK'])#,'InvestmentType'])
+            .drop(columns=['InvestmentDKK', 'InvestmentType'])
         )
-
+        column_map = {
+            "CVR": "CVR",
+            "Date": "FROM_DATE",
+            "InvestmentDKK" : "INVESTMENT",
+            "Rate" : "RATE",
+            "PaymentType" : "PAYMENT_TYPE"
+        }
         # Filter out data and rename columns
         ddf = (ddf
-            .rename(columns=dict(zip(ddf.columns, output_columns)))
+            .rename(columns=column_map)
             .loc[lambda x: x.FROM_DATE >= self.earliest_start]
         )
+
+        ddf = ddf.fillna({'PAYMENT_TYPE': "[UNK]"})
 
         if self.downsample:
             ddf = self.downsample_persons(ddf)

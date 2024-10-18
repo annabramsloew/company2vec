@@ -135,8 +135,6 @@ class CorpusVocabulary(Vocabulary):
             def maybe_to_int(y: str) -> Union[str, int]:
                 if y.isdigit():
                     return int(y)
-                elif y == "UNK":
-                    return 0
                 else:
                     return y
 
@@ -154,22 +152,31 @@ class CorpusVocabulary(Vocabulary):
         # merge token counts if different sources have the same token
         token_counts = {}
         for label in unique_field_labels:
-            counts = {}
+            #counts = {}
             for source_counts in all_token_counts:
                 if label in source_counts.keys():
                     for token, count in source_counts[label].items():
-                        counts[token] = counts.get(token, 0) + count
-            token_counts[label] = counts
+                        token_counts[token] = token_counts.get(token, 0) + count
+            #token_counts[label] = counts
 
-        for label in unique_field_labels:
-            counts = token_counts[label]
-            min_count = self.min_token_count_field.get(label, self.min_token_count)
-            tokens = [k for k, v in counts.items() if v >= min_count]
-            tokens.sort(key=sort_key)
-            tokens_df = pd.DataFrame({"TOKEN": tokens, "CATEGORY": label})
-            vocab_parts.append(tokens_df)
+        #for label in unique_field_labels:
+        #for token in token_counts.keys():
+            #counts = token_counts[label]
+            #min_count = self.min_token_count_field.get(label, self.min_token_count)
+        tokens = [k for k, v in token_counts.items() if v >= self.min_token_count]
+        tokens.sort(key=sort_key)
+        tokens_df = pd.DataFrame({"TOKEN": tokens})
 
-        return pd.concat(vocab_parts, ignore_index=True).rename_axis(index="ID")
+        def get_token_category(token:str) -> str:
+            splitted = token.split("_")
+            if len(splitted) == 1:
+                return "GENERAL"
+            else:
+                return splitted[0]
+            
+        tokens_df["CATEGORY"] = tokens_df["TOKEN"].apply(get_token_category)
+        vocab_parts.append(tokens_df)
+        return pd.concat(vocab_parts, ignore_index=True).drop_duplicates().reset_index(drop=True).rename_axis(index="ID")
 
     @save_pickle(
         DATA_ROOT / "interim/vocab/{self.name}/token_counts/{source.name}",

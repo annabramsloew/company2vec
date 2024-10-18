@@ -59,31 +59,33 @@ class AnnualReportTokens(TokenSource):
         result = (
             self.indexed()
         .assign(
-                COMPANY_TYPE=lambda x: "CTYP_" + x.COMPANY_TYPE.map({"A/S": "AS", 
-                                                                     "APS": "APS", 
-                                                                     "IVS": "IVS"}, meta=('COMPANY_TYPE', 'object')),
+                COMPANY_TYPE=lambda x: x.COMPANY_TYPE.map({"A/S": "CTYP_AS", 
+                                                            "APS": "CTYP_APS", 
+                                                            "IVS": "CTYP_IVS",
+                                                            "[UNK]": "[UNK]"}, meta=('COMPANY_TYPE', 'object')),
 
-                INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not ind=="UNK" else "UNK", meta=('INDUSTRY', 'object')),
+                INDUSTRY=lambda x: x.INDUSTRY.apply(lambda ind: "IND_" + ind[:4] if ind != "[UNK]" else ind, meta=('INDUSTRY', 'object')),
 
-                COMPANY_STATUS=lambda x: "CSTAT_" + x.COMPANY_STATUS.map({
-                                                                        "NORMAL": "ACTIVE",
-                                                                        "AKTIV": "ACTIVE",
-                                                                        "UNDER REASSUMERING" : "OTHER",
-                                                                        "UNDER FRIVILLIG LIKVIDATION" : "OTHER",
-                                                                        "UNDER REKONSTRUKTION" : "DISTRESS",
-                                                                        "UNDER TVANGSOPLØSNING" : "DISTRESS",
-                                                                        "UNDER KONKURS" : "DISTRESS",
-                                                                        "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "DISSOLVED",
-                                                                        "OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING" : "DISSOLVED",
-                                                                        "OPLØST EFTER SPALTNING" : "DISSOLVED",
-                                                                        "OPLØST EFTER ERKLÆRING" : "DISSOLVED",
-                                                                        "OPLØST EFTER FUSION" : "DISSOLVED",
-                                                                        "OPLØST EFTER FRIVILLIG LIKVIDATION" : "DISSOLVED",
-                                                                        "SLETTET" : "DISSOLVED",
-                                                                        "OPLØST EFTER KONKURS" : "BANKRUPT",
-                                                                        "TVANGSOPLØST" : "BANKRUPT"
-                                                                        }, meta=('COMPANY_STATUS', 'object')), 
-                MUNICIPALITY=lambda x: "MUN_" + x.MUNICIPALITY
+                COMPANY_STATUS=lambda x: x.COMPANY_STATUS.map({
+                                                                "NORMAL": "CSTAT_ACTIVE",
+                                                                "AKTIV": "CSTAT_ACTIVE",
+                                                                "UNDER REASSUMERING" : "CSTAT_OTHER",
+                                                                "UNDER FRIVILLIG LIKVIDATION" : "CSTAT_OTHER",
+                                                                "UNDER REKONSTRUKTION" : "CSTAT_DISTRESS",
+                                                                "UNDER TVANGSOPLØSNING" : "CSTAT_DISTRESS",
+                                                                "UNDER KONKURS" : "CSTAT_DISTRESS",
+                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER SPALTNING" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER ERKLÆRING" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER FUSION" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER FRIVILLIG LIKVIDATION" : "CSTAT_DISSOLVED",
+                                                                "SLETTET" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER KONKURS" : "CSTAT_BANKRUPT",
+                                                                "TVANGSOPLØST" : "CSTAT_BANKRUPT",
+                                                                "[UNK]" : "[UNK]"
+                                                                }, meta=('COMPANY_STATUS', 'object')), 
+                MUNICIPALITY=lambda x: x.MUNICIPALITY.apply(lambda mun: "MUN_" + mun if mun != "[UNK]" else mun, meta=('MUNICIPALITY', 'object'))
             ).pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
 
@@ -263,10 +265,10 @@ class AnnualReportTokens(TokenSource):
         )
 
         ddf = ddf.fillna({
-            'COMPANY_TYPE': 'UNK',
-            'INDUSTRY': 'UNK',
-            'COMPANY_STATUS': 'UNK',
-            'MUNICIPALITY': 'UNK',
+            'COMPANY_TYPE': '[UNK]',
+            'INDUSTRY': '[UNK]',
+            'COMPANY_STATUS': '[UNK]',
+            'MUNICIPALITY': '[UNK]',
         })
 
 

@@ -233,7 +233,7 @@ def active_participants_per_year(df: dd.DataFrame) -> dd.DataFrame:
 
 def bin_share(share):
     if pd.isna(share):
-        return "SHARE_NA"
+        return "[UNK]"
     elif share < 0.1:
         return "SHARE_0_10"
     elif share < 0.2:

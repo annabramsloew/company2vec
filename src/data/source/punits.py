@@ -53,9 +53,9 @@ class ProductionUnitTokens(TokenSource):
         result = (
             self.indexed()
             .assign(
-            ACTION=lambda x: x.ACTION.map({"Start": "ACT_OPEN", "End": "ACT_CLOSE"}, meta=('ACTION', 'object')),
-            INDUSTRY=lambda x: "IND_" + x.INDUSTRY.apply(lambda ind: ind[:4] if not ind == "UNK" else ind, meta=('INDUSTRY', 'object')), 
-            MUNICIPALITY=lambda x: x.MUNICIPALITY.apply(lambda mun: "MUN_" + mun if mun != "UNK" else mun, meta=('MUNICIPALITY', 'object'))
+            ACTION=lambda x: x.ACTION.map({"Start": "ACT_OPEN", "End": "ACT_CLOSE", "[UNK]":"[UNK]"}, meta=('ACTION', 'object')),
+            INDUSTRY=lambda x: x.INDUSTRY.apply(lambda ind: "IND_" + ind[:4] if ind != "[UNK]" else ind, meta=('INDUSTRY', 'object')), 
+            MUNICIPALITY=lambda x: x.MUNICIPALITY.apply(lambda mun: "MUN_" + mun if mun != "[UNK]" else mun, meta=('MUNICIPALITY', 'object'))
             )
         )
         assert isinstance(result, dd.DataFrame)
@@ -155,9 +155,9 @@ class ProductionUnitTokens(TokenSource):
 
         # Handle missing values and deal with datatypes
         ddf = ddf.fillna({
-            'COMPANY_STATUS': 'UNK',
-            'INDUSTRY': 'UNK',
-            'MUNICIPALITY': 'UNK',
+            'COMPANY_STATUS': '[UNK]',
+            'INDUSTRY': '[UNK]',
+            'MUNICIPALITY': '[UNK]',
         })
 
         if self.downsample:

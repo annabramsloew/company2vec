@@ -14,7 +14,7 @@ from ..logging_config import DATA_ROOT
 from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import active_participants_per_year
 
-# ------------------------------------------ FIX IMPORTS ------------------------------------------
+
 @dataclass
 class LeadershipTokens(TokenSource):
     """This generates tokens based on information from the annual reports, registrations and currency datasets.
@@ -54,7 +54,7 @@ class LeadershipTokens(TokenSource):
         result = (
             self.indexed()
             .assign(
-                PARTICIPANT_TYPE=lambda x: "LEADER_" + x.PARTICIPANT_TYPE.map({'BOARD_MEMBER': 'BOARD', 'C_LEVEL_EXECUTIVE': 'EXEC'},meta=('PARTICIPANT_TYPE', 'object')),
+                PARTICIPANT_TYPE=lambda x: x.PARTICIPANT_TYPE.map({'BOARD_MEMBER': 'LEADER_BOARD', 'C_LEVEL_EXECUTIVE': 'LEADER_EXEC'},meta=('PARTICIPANT_TYPE', 'object')),
             )
             .pipe(sort_partitions, columns=["FROM_DATE"])[
                 ["FROM_DATE", *self.field_labels()]
@@ -90,7 +90,7 @@ class LeadershipTokens(TokenSource):
         next steps"""
 
 
-                # interim data
+        # interim data
         interim_path = DATA_ROOT / "interim" / "leadership"
         if os.path.exists(interim_path):
 
@@ -203,130 +203,6 @@ class LeadershipTokens(TokenSource):
         ddf = (ddf_leadership
             .rename(columns=dict(zip(ddf_leadership.columns, output_columns)))
         )
-
-        #check result
-        ddf = ddf.compute()
-
-        #save ddf to csv
-        ddf.to_csv('/Users/annabramslow/Desktop/leadership_dfappend.csv', index=False)
-
-        if self.downsample:
-            ddf = self.downsample_persons(ddf)
-
-        assert isinstance(ddf, dd.DataFrame)
-
-        return ddf
-    
-
-    def parsed(self) -> dd.DataFrame:
-        """Parses the CSV file, applies some basic filtering, then saves the result
-        as compressed parquet file, as this is easier to parse than the CSV for the
-        next steps"""
-        
-
-            
-        
-
-        columns_leadership = [
-            "CVR",
-            "EntityID",
-            "ParticipantType",
-            "RelationType",
-            "Participation",
-            "Date"
-            ]
-
-        output_columns = [
-            "FROM_DATE",
-            "CVR",
-            "PARTICIPANT_TYPE",
-            "EXPERIENCE"
-            ]
-
-        # Update the path to the data
-        path_leadership = self.input_csv / "Participants"
-        path_cvr = self.input_csv / "CVRFiltered"
-
-        # Load files
-        leadership_csv = [file for file in path_leadership.iterdir() if file.is_file() and file.suffix == '.csv']
-        cvr_csv = [file for file in path_cvr.iterdir() if file.is_file() and file.suffix == '.csv']
-
-        # Load data
-        ddf_leadership = dd.read_csv(
-            leadership_csv,
-            usecols=columns_leadership,
-            on_bad_lines="error",
-            assume_missing=True,
-            dtype={
-                "CVR": int,
-                "FromDate": str,
-                "EntityID": int,
-                "ParticipantType": str,
-                "RelationType": str,
-                "Participation": str,
-            },
-            blocksize="256MB",
-        )
-
-        df_cvr = dd.read_csv(
-            cvr_csv,
-            usecols=['CVR'],
-            dtype={
-                "CVR": int
-            }
-        )
-
-        # Filter and enrich data
-        #filter away ownertype person and non-owner participants and exit participations
-        ddf_leadership = (ddf_leadership
-            .loc[lambda x: x.RelationType != 'EJERANDEL']
-            .loc[lambda x: x.ParticipantType != 'VIRKSOMHED'] #assuming we only want to keep persons as board members/c-level executives
-        )
-
-        #map management positions to PARTICIPANT_TYPE = ['BOARD_MEMBER', 'CEO']
-        management_map = {
-            "BESTYRELSESMEDLEM": "BOARD_MEMBER",
-            "DIREKTION": "C_LEVEL_EXECUTIVE",
-            "DIREKTØR": "C_LEVEL_EXECUTIVE",
-            "FORMAND": "BOARD_MEMBER",
-            "ADM. DIR.": "C_LEVEL_EXECUTIVE",
-            "NÆSTFORMAND": "BOARD_MEMBER",
-            "BESTYRELSE": "BOARD_MEMBER",
-            "SUPPLEANT": "BOARD_MEMBER"
-        }
-        ddf_leadership['RelationType'] = ddf_leadership['RelationType'].str.strip().str.upper()
-        ddf_leadership['RelationType'] = ddf_leadership['RelationType'].map(management_map)
-
-        #filter away rows not in ParticipantType = ['BOARD_MEMBER', 'CEO']
-        ddf_leadership = ddf_leadership.loc[ddf_leadership['RelationType'].isin(['BOARD_MEMBER', 'C_LEVEL_EXECUTIVE'])]
-        
-        #turn date column into datetime and fill missing values with 2000-01-01
-        ddf_leadership['Date'] = dd.to_datetime(ddf_leadership['Date'], errors='coerce')
-        ddf_leadership['Date'] = ddf_leadership['Date'].fillna(pd.Timestamp('2000-01-01'))
-
-        #filter away CVR's that are not in the lookup table from the employee data and registration data
-        cvr_list = df_cvr['CVR'].compute()
-        ddf_leadership = ddf_leadership.loc[ddf_leadership['CVR'].isin(cvr_list)]
-        del df_cvr
-
-        # Summarize leadership for every CVR per year (per Dec 31st)
-        # List active ParticipantTypes and their corresponding experience
-        ddf_leadership = active_participants_per_year(ddf_leadership)
-        
-        # Rename columns
-        ddf = (ddf_leadership
-            .rename(columns=dict(zip(ddf_leadership.columns, output_columns)))
-        )
-
-        #check min and max date
-        min_date = ddf['FROM_DATE'].min().compute()
-        max_date = ddf['FROM_DATE'].max().compute()
-
-        #check result
-        ddf = ddf.compute()
-
-        #save ddf to csv
-        ddf.to_csv('/Users/annabramslow/Desktop/leadership.csv', index=False)
 
         if self.downsample:
             ddf = self.downsample_persons(ddf)
