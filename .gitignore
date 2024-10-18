@@ -22,3 +22,7 @@ src/__pycache__/logging_config.cpython-39.pyc
 src/__pycache__/serialize.cpython-39.pyc
 src/__pycache__/utils.cpython-39.pyc
 src/source/__pycache__/leadership2.cpython-39.pyc
+**/__pycache__/
+.idea/
+.vscode/
+myenv/
