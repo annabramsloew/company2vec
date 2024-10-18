@@ -2,7 +2,7 @@ import pickle
 from datetime import date, datetime
 from itertools import chain, repeat
 from typing import Dict, Iterable, Iterator, Tuple, TypeVar, Any
-from src.source.base import TokenSource
+from src.data.source.base import TokenSource
 
 import pandas as pd
 from dateutil import relativedelta

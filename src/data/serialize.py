@@ -25,7 +25,7 @@ import dask
 import dask.dataframe as dd
 import pandas as pd
 
-from src.utils import stringify
+from src.data.utils import stringify
 from datetime import datetime
 
 

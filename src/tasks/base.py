@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from src.data_new.augment import (
+from src.data.augment import (
     add_noise2time,
     align_document,
     make_timecut,
@@ -15,11 +15,11 @@ from src.data_new.augment import (
     shuffle_sentences,
     drop_tokens,
 )
-from src.data_new.types import Background, PersonDocument
+from src.data.types import Background, CompanyDocument
 
 if TYPE_CHECKING:
-    from src.data_new.datamodule import L2VDataModule
-    from src.data_new.types import EncodedDocument
+    from src.data.datamodule import L2VDataModule
+    from src.data.types import EncodedDocument
 
 
 def collate_encoded_documents(
@@ -35,14 +35,14 @@ _TaskT = TypeVar("_TaskT", bound="Task")
 @dataclass
 class Task:
     """
-    Base class for processing :class:`src.data.types.PersonDocument` objects
+    Base class for processing :class:`src.data.types.CompanyDocument` objects
     for various ML tasks. Includes default implementations for clipping and augmenting
     documents.
     In order to implement a new task, we have to implement the :meth:`encode_sequence`,
     which defines how the documents should be encoded for a specific task, ie. what
     input the forward method of the model expects for the task in question.
 
-    Also defines a default implementation for pulling :class:`PersonDocument` objects
+    Also defines a default implementation for pulling :class:`CompanyDocument` objects
     out of the sentence data provided by the :class:`src.data.Corpus`. Task
     implementations can extend this method and save task-specific information in the
     :attr:`task_info` field
@@ -88,9 +88,9 @@ class Task:
 
     def get_preprocessor(
         self: _TaskT, is_train: bool
-    ) -> Callable[[PersonDocument], "EncodedDocument[_TaskT]"]:
+    ) -> Callable[[CompanyDocument], "EncodedDocument[_TaskT]"]:
     
-        def preprocessor(x: PersonDocument) -> "EncodedDocument[_TaskT]":
+        def preprocessor(x: CompanyDocument) -> "EncodedDocument[_TaskT]":
             x = self.augment_document(x, is_train=is_train)
             x = self.clip_document(x)
             return self.encode_document(x)
@@ -98,8 +98,8 @@ class Task:
         return preprocessor
 
     def augment_document(
-        self, document: PersonDocument, is_train: bool
-    ) -> PersonDocument:
+        self, document: CompanyDocument, is_train: bool
+    ) -> CompanyDocument:
 
         if self.shuffle_within_sentences:
             # TODO: Maybe we should only do this for training?
@@ -139,7 +139,7 @@ class Task:
 
         return document
 
-    def clip_document(self, document: PersonDocument) -> PersonDocument:
+    def clip_document(self, document: CompanyDocument) -> CompanyDocument:
 
         assert document.segment is not None
 
@@ -157,45 +157,41 @@ class Task:
         if clip_idx is not None:
             document.sentences = document.sentences[-clip_idx:]
             document.abspos = document.abspos[-clip_idx:]
-            document.age = document.age[-clip_idx:]
+            #document.age = document.age[-clip_idx:]
             document.segment = document.segment[-clip_idx:]
 
         return document
 
-    def encode_document(
-        self: _TaskT, document: PersonDocument
+    def register_document(
+        self: _TaskT, document: CompanyDocument
     ) -> "EncodedDocument[_TaskT]":
         raise NotImplementedError
 
-    def get_document(self, person_sentences: pd.DataFrame) -> PersonDocument:
+    def get_document(self, company_sentences: pd.DataFrame) -> CompanyDocument:
 
-        person_id = person_sentences.name
-        sentences = [x.split(" ") for x in person_sentences.SENTENCE]
-        abspos = (person_sentences.START_DATE + 1).tolist()
-        age = person_sentences.AGE.tolist()
+        cvr = company_sentences.name
+        sentences = [x.split(" ") for x in company_sentences.SENTENCE]
+        abspos = (company_sentences.FROM_DATE + 1).tolist()
+        #age = company_sentences.AGE.tolist()
 
-        after_threshold = person_sentences.AFTER_THRESHOLD
+        after_threshold = company_sentences.AFTER_THRESHOLD
         try:
             timecut_pos = next(i for i, k in enumerate(after_threshold) if k)
         except StopIteration:
             timecut_pos = len(after_threshold)
 
-        birthday = person_sentences.BIRTHDAY.iloc[0]
-        origin = person_sentences.RES_ORIGIN.iloc[0]
-        gender = person_sentences.GENDER.iloc[0]
+        #TODO - This is a temporary solution. We need to define the background sentence of a company
+        origin = 'DK'
 
         background = Background(
-            origin=origin,
-            gender=gender,
-            birth_month=birthday.month,
-            birth_year=birthday.year,
+            origin=origin
         )
 
-        return PersonDocument(
-            person_id=person_id,
+        return CompanyDocument(
+            cvr=cvr,
             sentences=sentences,
             abspos=abspos,
-            age=age,
+            #age=age,
             timecut_pos=timecut_pos,
             background=background,
         )
