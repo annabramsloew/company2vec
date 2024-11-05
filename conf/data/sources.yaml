@@ -1,0 +1,39 @@
+# @package data.sources
+
+# Capital
+capital:
+  _target_: src.data.source.capital.CapitalTokens
+  name: capital
+  downsample: False
+
+# Employees
+employees:
+  _target_: src.data.source.employees.EmployeeTokens
+  name: employees
+  downsample: False
+
+# Financials  
+financials:
+  _target_: src.data.source.financials.AnnualReportTokens
+  name: "financials"
+  downsample: False
+
+# Leadership  
+leadership:
+  _target_: src.data.source.leadership.LeadershipTokens
+  name: "leadership"
+  downsample: False
+
+# Ownership  
+ownership:
+  _target_: src.data.source.ownership.OwnershipTokens
+  name: "ownership"
+  downsample: False
+
+# Punits  
+punits:
+  _target_: src.data.source.punits.ProductionUnitTokens
+  name: "punits"
+  downsample: False
+
+

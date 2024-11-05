@@ -479,31 +479,31 @@ class C2VDataModule(pl.LightningDataModule):
 
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    # initiate corpus with production units and annual reports as sources
-    corpus = Corpus(
-                    name = "test_multiple_new", 
-                    sources = [ProductionUnitTokens(), AnnualReportTokens()],
-                    population = FromAnnualReports(token_data=AnnualReportTokens())
-        )
+#     # initiate corpus with production units and annual reports as sources
+#     corpus = Corpus(
+#                     name = "test_multiple_new", 
+#                     sources = [ProductionUnitTokens(), AnnualReportTokens()],
+#                     population = FromAnnualReports(token_data=AnnualReportTokens())
+#         )
 
-    # initiate vocabulary
-    vocab = CorpusVocabulary(corpus=corpus, name='test_vocab_new')
+#     # initiate vocabulary
+#     vocab = CorpusVocabulary(corpus=corpus, name='test_vocab_new')
 
-    # initiate task
-    task = MLM(name="test_mlm_new", max_length=512)
+#     # initiate task
+#     task = MLM(name="test_mlm_new", max_length=512)
 
-    # initiate lightning data module
-    dm = C2VDataModule(corpus=corpus, vocabulary=vocab, task=task)
-    dm.prepare()
+#     # initiate lightning data module
+#     dm = C2VDataModule(corpus=corpus, vocabulary=vocab, task=task)
+#     dm.prepare()
 
-    # initiate dataloader
-    dl = dm.train_dataloader()
+#     # initiate dataloader
+#     dl = dm.train_dataloader()
 
-    # get an example from the dataloader
-    for x in dl:
-        break
+#     # get an example from the dataloader
+#     for x in dl:
+#         break
     
     # save x as a pickle file
     # with open("batch.pkl", "wb") as f:

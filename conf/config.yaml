@@ -1,0 +1,15 @@
+defaults:
+  - _self_
+  - /experiment: "???"
+
+# Values for the different experiments
+seed: 2024
+version: "0.0"
+implementation: "v0"
+name: "test"
+
+local_path: "Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec"
+user_path: "/Users/nikolaibeckjensen/"
+
+# checkpoint
+ckpt_path: null

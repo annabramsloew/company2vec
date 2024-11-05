@@ -24,7 +24,7 @@ log_file_path = LOG_ROOT / f"serialize_{start_datetime}.log"
 
 # Create a logger
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)  # Set the logging level
+log.setLevel(logging.INFO)  # Set the logging level
 
 # Create a file handler
 file_handler = logging.FileHandler(log_file_path)
@@ -39,6 +39,6 @@ log.addHandler(file_handler)
 
 # Optionally, add a console handler if you want to see logs in the console
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
+console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(formatter)
 log.addHandler(console_handler)

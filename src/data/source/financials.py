@@ -234,7 +234,7 @@ class AnnualReportTokens(TokenSource):
             date_col_registrations='FromDate'
             )
         
-        ddf = dd.from_pandas(ddf)
+        ddf = dd.from_pandas(ddf, npartitions=2)
         print("SAVED")
         
         # convert currency

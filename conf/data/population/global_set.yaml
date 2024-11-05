@@ -1,0 +1,7 @@
+
+defaults:
+  - /data/sources
+
+_target_: src.data.populations.from_annualreports.FromAnnualReports
+name: global_set
+token_data: ${data.sources.financials}

@@ -241,7 +241,7 @@ class ParquetSerializer(Serializer[dd.DataFrame]):
 
         path = self.get_path(f, ba)
         parquet_kwargs = {
-            "engine": "pyarrow", #fastparquet
+            "engine": "pyarrow-dataset", #fastparquet
             "compression": "gzip",
             "allow_truncated_timestamps": True,
             "coerce_timestamps": "us",

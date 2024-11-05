@@ -27,8 +27,6 @@ class FromAnnualReports(Population):
 
     :param labour_data: Instance of :class:`src.data.sources.LabourTokens` token source
         to base the population on.
-    :param year: Year in which to require 12 registrations in the labour data, in order
-        for a person to be included.
     :param earliest_birthday: Earliest allowed birthday
     :param latest_birthday: Latest allowed birthday
     :param seed: Seed for splitting training, validation and test dataset
@@ -38,7 +36,6 @@ class FromAnnualReports(Population):
 
     token_data: AnnualReportTokens
     name: str = "annual_reports_test1"
-    year: int = 2015
     seed: int = 123
     train_val_test: Tuple[float, float, float] = (0.7, 0.15, 0.15)
 

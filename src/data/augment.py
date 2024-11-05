@@ -68,21 +68,23 @@ def add_noise2time(document: CompanyDocument) -> CompanyDocument:
 def resample_document(document: CompanyDocument) -> CompanyDocument:
     """Randomly remove events from the document"""
     num_records = len(document.sentences)
-    num_to_remove = np.random.randint(
-        low=int(np.floor(num_records * 0.25)),
-        high=int(np.floor((num_records * 0.5))),
-        size=1,
-    )
-    idx_to_remove = set(
-        np.random.choice(np.arange(0, num_records), size=num_to_remove, replace=False)
-    )
+    #TODO: remove if statement
+    if num_records > 1:
+        num_to_remove = np.random.randint(
+            low=int(np.floor(num_records * 0.25)),
+            high=int(np.floor((num_records * 0.5))),
+            size=1,
+        )
+        idx_to_remove = set(
+            np.random.choice(np.arange(0, num_records), size=num_to_remove, replace=False)
+        )
 
-    document.sentences = [
-        i for idx, i in enumerate(document.sentences) if idx not in idx_to_remove
-    ]
-    document.abspos = [
-        i for idx, i in enumerate(document.abspos) if idx not in idx_to_remove
-    ]
+        document.sentences = [
+            i for idx, i in enumerate(document.sentences) if idx not in idx_to_remove
+        ]
+        document.abspos = [
+            i for idx, i in enumerate(document.abspos) if idx not in idx_to_remove
+        ]
     #document.age = [i for idx, i in enumerate(document.age) if idx not in idx_to_remove]
 
     # Added for v8_1_43
