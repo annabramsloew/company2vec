@@ -12,7 +12,7 @@ from ..decorators import save_parquet
 from ..ops import sort_partitions
 from ..logging_config import DATA_ROOT
 from .base import FIELD_TYPE, TokenSource, Binned
-from .source_helpers import dd_enrich_with_asof_values, bin_share
+from .source_helpers import dd_enrich_with_asof_values_v2, bin_share
 
 # ------------------------------------------ FIX IMPORTS ------------------------------------------
 @dataclass
@@ -220,7 +220,7 @@ class OwnershipTokens(TokenSource):
         ddf_employee = ddf_employee.rename(columns={'CVR': 'CVR_right'})
 
         # enrich owners with asof values from the registrations - industry
-        ddf_owners_internal = dd_enrich_with_asof_values(
+        ddf_owners_internal = dd_enrich_with_asof_values_v2(
             ddf_owners_internal, 
             ddf_registrations, 
             values=['Industry'], 
@@ -230,7 +230,7 @@ class OwnershipTokens(TokenSource):
             right_by_value='CVR_right'
         ).drop(columns=['CVR_right'])
         
-        ddf_owners_external = dd_enrich_with_asof_values(
+        ddf_owners_external = dd_enrich_with_asof_values_v2(
             ddf_owners_external,
             ddf_registrations,
             values=['Industry'],

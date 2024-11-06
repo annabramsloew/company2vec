@@ -38,12 +38,12 @@ def enrich_with_asof_values(df: pd.DataFrame, df_registrations: pd.DataFrame, va
 
     return df
 
-def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame, values=['Industry', 'CompanyType', 'Municipality', 'Status'], 
+def enrich_with_asof_values_v2(df: pd.DataFrame, df_registrations: pd.DataFrame, values=['Industry', 'CompanyType', 'Municipality', 'Status'], 
                                date_col_df='FromDate', 
                                date_col_registrations='FromDate',
                                left_by_value='CVR',
                                right_by_value='CVR'
-                               ) -> dd.DataFrame:
+                               ) -> pd.DataFrame:
     """
     Adds the as-of values of df_registrations for the entries in df.
     Allows different date column names for both dataframes.
@@ -59,8 +59,8 @@ def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame,
             df_value[date_col_registrations] = df_value[date_col_registrations].fillna('2000-01-01')
 
         # Convert date columns to datetime if they are not already in datetime format
-        df[date_col_df] = dd.to_datetime(df[date_col_df], errors='coerce')
-        df_value[date_col_registrations] = dd.to_datetime(df_value[date_col_registrations], errors='coerce')
+        df[date_col_df] = pd.to_datetime(df[date_col_df], errors='coerce')
+        df_value[date_col_registrations] = pd.to_datetime(df_value[date_col_registrations], errors='coerce')
 
         # Select relevant columns and rename 'NewValue' to the current value
         df_value = df_value[[right_by_value, date_col_registrations, 'NewValue']].rename(columns={
@@ -69,13 +69,11 @@ def dd_enrich_with_asof_values(df: dd.DataFrame, df_registrations: dd.DataFrame,
         })
 
         # sort the dataframes by the date column
-        df = df.set_index(date_col_df, drop=False).reset_index(drop=True)
         df = df.sort_values(date_col_df)
-        df_value = df_value.set_index(date_col_df, drop=False).reset_index(drop=True)
         df_value = df_value.sort_values(date_col_df)
 
         # Perform the asof merge using Dask's merge_asof function
-        df = dd.merge_asof(
+        df = pd.merge_asof(
             df,
             df_value,
             on=date_col_df,
