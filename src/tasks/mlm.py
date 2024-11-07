@@ -56,7 +56,7 @@ class MLM(Task):
             )
 
         abspos_expanded = expand([0] + document.abspos)
-        #age_expanded = expand([0.0] + document.age)
+        age_expanded = expand([0.0] + document.age)
         assert document.segment is not None
         segment_expanded = expand([1] + document.segment)
 
@@ -71,12 +71,11 @@ class MLM(Task):
 
         length = len(token_ids)
 
-        input_ids = np.zeros((3, self.max_length)) #np.zeros((4, self.max_length))
+        input_ids = np.zeros((4, self.max_length))
         input_ids[0, :length] = masked_sentences
         input_ids[1, :length] = abspos_expanded
-        input_ids[2, :length] = segment_expanded
-        #input_ids[2, :length] = age_expanded
-        #input_ids[3, :length] = segment_expanded
+        input_ids[2, :length] = age_expanded
+        input_ids[3, :length] = segment_expanded
 
         padding_mask = np.repeat(False, self.max_length)
         padding_mask[:length] = True

@@ -73,7 +73,7 @@ class LeadershipTokens(TokenSource):
 
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
-        result = self.parsed().set_index("CVR").rename(columns={'RelationType': 'PARTICIPANT_TYPE', 'FromDate': 'FROM_DATE', 'Experience': 'EXPERIENCE'})
+        result = self.parsed().dropna(subset='FROM_DATE').set_index("CVR").rename(columns={'RelationType': 'PARTICIPANT_TYPE', 'FromDate': 'FROM_DATE', 'Experience': 'EXPERIENCE'})
         assert isinstance(result, dd.DataFrame)
         return result
 

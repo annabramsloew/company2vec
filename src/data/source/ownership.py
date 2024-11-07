@@ -12,7 +12,7 @@ from ..decorators import save_parquet
 from ..ops import sort_partitions
 from ..logging_config import DATA_ROOT
 from .base import FIELD_TYPE, TokenSource, Binned
-from .source_helpers import dd_enrich_with_asof_values_v2, bin_share
+from .source_helpers import enrich_with_asof_values_v2, bin_share
 
 # ------------------------------------------ FIX IMPORTS ------------------------------------------
 @dataclass
@@ -73,7 +73,7 @@ class OwnershipTokens(TokenSource):
 
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
-        result = self.parsed().set_index("CVR")
+        result = self.parsed().dropna(subset='FROM_DATE').set_index("CVR")
         assert isinstance(result, dd.DataFrame)
         return result
 
@@ -220,7 +220,7 @@ class OwnershipTokens(TokenSource):
         ddf_employee = ddf_employee.rename(columns={'CVR': 'CVR_right'})
 
         # enrich owners with asof values from the registrations - industry
-        ddf_owners_internal = dd_enrich_with_asof_values_v2(
+        ddf_owners_internal = enrich_with_asof_values_v2(
             ddf_owners_internal, 
             ddf_registrations, 
             values=['Industry'], 
@@ -230,7 +230,7 @@ class OwnershipTokens(TokenSource):
             right_by_value='CVR_right'
         ).drop(columns=['CVR_right'])
         
-        ddf_owners_external = dd_enrich_with_asof_values_v2(
+        ddf_owners_external = enrich_with_asof_values_v2(
             ddf_owners_external,
             ddf_registrations,
             values=['Industry'],

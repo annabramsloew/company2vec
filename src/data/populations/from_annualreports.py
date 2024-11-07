@@ -27,8 +27,8 @@ class FromAnnualReports(Population):
 
     :param labour_data: Instance of :class:`src.data.sources.LabourTokens` token source
         to base the population on.
-    :param earliest_birthday: Earliest allowed birthday
-    :param latest_birthday: Latest allowed birthday
+    :param earliest_founding_date: Earliest allowed founding_date
+    :param latest_founding_date: Latest allowed founding_date
     :param seed: Seed for splitting training, validation and test dataset
     :param train_val_test: Fraction of the data to be included in the three data splits.
         Must sum to 1.
@@ -67,17 +67,26 @@ class FromAnnualReports(Population):
         Pulls out the CVR (the index)
         """
 
+        # fetch the annual report tokens and keep only the unique CVRs
         ls = self.token_data
         result = ls.indexed().drop(columns=['ASSETS', 'LIABILITIES_AND_EQUITY', 'EQUITY', 'PROFIT_LOSS', "MUNICIPALITY", 'INDUSTRY', 'COMPANY_TYPE', 'COMPANY_STATUS'])
-        # Reset index and drop duplicates based on the CVR column
         result = result.reset_index().drop_duplicates(subset="CVR")
 
-        # Sort the DataFrame by CVR
-        result = result.sort_values(by="CVR")
-
-        # Set CVR as the index
-        result = result.set_index("CVR")
-
+        # fetch founding date information from the CompanyInfo table
+        cvr_info_folder = DATA_ROOT / "Tables"/ "CompanyInfo"
+        files_csv = [file for file in cvr_info_folder.iterdir() if file.is_file() and file.suffix == '.csv']
+        dd_cvr_info = dd.read_csv(
+            files_csv,
+            assume_missing=True,
+            usecols=['CVR', 'StartDate'],
+            dtype={'CVR': int},
+            parse_dates=['StartDate']).rename(columns={'StartDate': 'FOUNDING_DATE'})
+        
+        # join the FOUNDING_DATE column to the CVR table
+        result = result.merge(dd_cvr_info, on='CVR', how='left') \
+                        .sort_values(by="CVR") \
+                        .set_index("CVR")
+  
         # Repartition the DataFrame to ensure sorted partitions
         result = result.repartition(npartitions=result.npartitions)
         assert isinstance(result, dd.DataFrame)

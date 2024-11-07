@@ -158,7 +158,7 @@ class Task:
         if clip_idx is not None:
             document.sentences = document.sentences[-clip_idx:]
             document.abspos = document.abspos[-clip_idx:]
-            #document.age = document.age[-clip_idx:]
+            document.age = document.age[-clip_idx:]
             document.segment = document.segment[-clip_idx:]
 
         return document
@@ -173,7 +173,7 @@ class Task:
         cvr = company_sentences.name
         sentences = [x.split(" ") for x in company_sentences.SENTENCE]
         abspos = (company_sentences.FROM_DATE + 1).tolist()
-        #age = company_sentences.AGE.tolist()
+        age = company_sentences.AGE.tolist()
 
         after_threshold = company_sentences.AFTER_THRESHOLD
         try:
@@ -192,7 +192,7 @@ class Task:
             cvr=cvr,
             sentences=sentences,
             abspos=abspos,
-            #age=age,
+            age=age,
             timecut_pos=timecut_pos,
             background=background,
         )

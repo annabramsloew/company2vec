@@ -18,13 +18,13 @@ def align_document(document: CompanyDocument) -> CompanyDocument:
     cut = document.timecut_pos
     document.sentences = document.sentences[:cut]
     document.abspos = document.abspos[:cut]
-    #document.age = document.age[:cut]
+    document.age = document.age[:cut]
     return document
 
 def make_timecut(
     document: CompanyDocument,
-    min_abspos: int = 732, 
-) -> CompanyDocument:  # 732 correcponds to time between 01/01/08-01/01/10
+    min_abspos: int = 0, # 366*2 roughly 2 years
+) -> CompanyDocument:  
     """Randomly Right Cut the Document"""
 
     num_events = len(document.sentences)
@@ -50,7 +50,7 @@ def make_timecut(
 
     document.sentences = document.sentences[:timecut_pos]
     document.abspos = document.abspos[:timecut_pos]
-    #document.age = document.age[:timecut_pos]
+    document.age = document.age[:timecut_pos]
 
     return document
 
@@ -85,7 +85,7 @@ def resample_document(document: CompanyDocument) -> CompanyDocument:
         document.abspos = [
             i for idx, i in enumerate(document.abspos) if idx not in idx_to_remove
         ]
-    #document.age = [i for idx, i in enumerate(document.age) if idx not in idx_to_remove]
+    document.age = [i for idx, i in enumerate(document.age) if idx not in idx_to_remove]
 
     # Added for v8_1_43
     # Each document should start with [0,1]
@@ -107,6 +107,6 @@ def shuffle_sentences(document: CompanyDocument) -> CompanyDocument:
     if document.segment is not None:
         document.segment = [document.segment[i] for i in order]
     document.abspos = [document.abspos[i] for i in order]
-    #document.age = [document.age[i] for i in order]
+    document.age = [document.age[i] for i in order]
 
     return document

@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 import pytorch_lightning as pl
 import torch
-# from pandas.tseries.offsets import MonthEnd
+from pandas.tseries.offsets import MonthEnd
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 from ..tasks.base import Task, collate_encoded_documents
@@ -35,6 +35,11 @@ from .vocabulary import Vocabulary, CorpusVocabulary
 
 N_PARTITIONS = 20
 
+def compute_age(date: pd.Series, founding_date: pd.Series) -> pd.Series:
+    age = date.dt.year - founding_date.dt.year
+    age -= (date + MonthEnd(1)).dt.day_of_year < founding_date.dt.day_of_year  # type: ignore
+    # Still leaves some inconstistent founding_dates (mainly due to 1-off errors i think)
+    return age
 
 @dataclass
 class Corpus:
@@ -61,7 +66,7 @@ class Corpus:
     population: Population
 
     reference_date: str = "2013-01-01" 
-    threshold: str = "2018-01-01"
+    threshold: str = "2022-01-01"
 
 
     def __post_init__(self) -> None:
@@ -80,17 +85,14 @@ class Corpus:
 
             A :class:`dask.dataframe.DataFrame` object with the following columns
 
-            * CVR (Index column) - The person ids.
+            * CVR (Index column) - The company ids.
 
             * FROM_DATE - Date of sentence as number of days since
               :attr:`self.reference_date`
 
             * SENTENCE - The sentence.
 
-            * AGE - Is calculated bases on the birthday of each person. If the sentences
-              already have an AGE columns, this is used instead.
-
-            * GENDER - The gender as specified in the population data
+            * AGE - Is calculated bases on the founding_date of each person. .
 
             * AFTER_THRESHOLD - a boolean column, indicating whether an event is efter
               :attr:`self.threshold`.
@@ -100,39 +102,41 @@ class Corpus:
         """
 
         population: pd.DataFrame = self.population.population().drop(columns=['FROM_DATE'])
+
         data_split = getattr(self.population.data_split(), split)
+        
         # Convert data_split to a DataFrame
         data_split_df = pd.DataFrame(data_split, columns=['CVR'])
-        sentences_parts = [self.sentences(s) for s in self.sources]
+        sentences_parts = [self.sentences(s).dropna(subset='FROM_DATE') for s in self.sources]
 
+        # filter away the companies not in the data split by inner merge
         combined_sentences = [
             sp.merge(data_split_df, left_index=True, right_on='CVR', how='inner').drop(columns=['CVR'])
             for sp in sentences_parts
         ]
+        
         
         combined_sentences = concat_sorted(
             combined_sentences,
             columns=["FROM_DATE"],
         )
         
+        # add the attributes from population, which holds the founding date of each company
         combined_sentences = combined_sentences.join(population)
 
-        # # Fix age from sources without age using birthday
-        # isna = combined_sentences.AGE.isna()
-        # combined_sentences["AGE"] = combined_sentences["AGE"].where(
-        #     ~isna,
-        #     compute_age(combined_sentences.FROM_DATE, combined_sentences.BIRTHDAY),
-        # )
 
         combined_sentences["AFTER_THRESHOLD"] = (
             combined_sentences.FROM_DATE >= self._threshold
         )
 
-        # # Date as days from reference date <- maybe move into task
+        # Age calculation
+        combined_sentences["AGE"] = compute_age(combined_sentences.FROM_DATE, combined_sentences.FOUNDING_DATE)
 
+        # Date as days from reference date 
         combined_sentences["FROM_DATE"] = (
             combined_sentences.FROM_DATE - self._reference_date
         ).dt.days.astype(int)
+
 
         ### DASK SPECIFIC
         combined_sentences = combined_sentences.reset_index().set_index("CVR", sorted=True)
@@ -189,6 +193,7 @@ class Corpus:
                 SENTENCE=concat_columns_dask(tokenized, columns=list(field_labels))
             )[cols]
 
+        assert sentences['FROM_DATE'].dtype.name == 'datetime64[ns]'
         assert isinstance(sentences, dd.DataFrame)
 
         return sentences
@@ -479,14 +484,14 @@ class C2VDataModule(pl.LightningDataModule):
 
 
 
-# if __name__ == "__main__":
-
-#     # initiate corpus with production units and annual reports as sources
-#     corpus = Corpus(
-#                     name = "test_multiple_new", 
-#                     sources = [ProductionUnitTokens(), AnnualReportTokens()],
-#                     population = FromAnnualReports(token_data=AnnualReportTokens())
-#         )
+if __name__ == "__main__":
+    # initiate corpus with production units and annual reports as sources
+    corpus = Corpus(
+                    name = "age_test_ownership", 
+                    sources = [OwnershipTokens()],
+                    population = FromAnnualReports(token_data=AnnualReportTokens())
+        )
+    corpus.combined_sentences("val")
 
 #     # initiate vocabulary
 #     vocab = CorpusVocabulary(corpus=corpus, name='test_vocab_new')

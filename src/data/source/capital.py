@@ -82,7 +82,7 @@ class CapitalTokens(TokenSource):
 
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
-        result = self.parsed().set_index("CVR")
+        result = self.parsed().dropna(subset='FROM_DATE').set_index("CVR")
         assert isinstance(result, dd.DataFrame)
         return result
 
@@ -164,7 +164,7 @@ class CapitalTokens(TokenSource):
         column_map = {
             "CVR": "CVR",
             "Date": "FROM_DATE",
-            "InvestmentDKK" : "INVESTMENT",
+            "Investment" : "INVESTMENT",
             "Rate" : "RATE",
             "PaymentType" : "PAYMENT_TYPE"
         }

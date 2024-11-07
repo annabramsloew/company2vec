@@ -95,7 +95,7 @@ class EmployeeTokens(TokenSource):
     )
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
-        result = self.parsed().set_index("CVR")
+        result = self.parsed().dropna(subset='FROM_DATE').set_index("CVR")
         assert isinstance(result, dd.DataFrame)
         return result
 

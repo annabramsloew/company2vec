@@ -16,7 +16,7 @@ class CompanyDocument:
     cvr: int
     sentences: List[List[str]]
     abspos: List[int]
-    #age: List[float]
+    age: List[float]
     timecut_pos: int  
     segment: Optional[List[int]] = None
     background: Optional["Background"] = None

@@ -66,7 +66,7 @@ class Transformer(nn.Module):
     def forward(self, x, padding_mask):
         """Forward pass"""
         x, _ = self.embedding(
-            tokens=x[:, 0], position=x[:, 1], age=torch.full_like(x[:, 2], 5), segment=x[:, 2]
+            tokens=x[:, 0], position=x[:, 1], age=x[:, 2], segment=x[:, 3]
         )
         for layer in self.encoders:
             x = torch.einsum("bsh, bs -> bsh", x, padding_mask)
@@ -76,7 +76,7 @@ class Transformer(nn.Module):
     def forward_finetuning(self,x, padding_mask=None):
 
         x, _ = self.embedding(
-            tokens=x[:, 0], position=x[:, 1],age=torch.full_like(x[:, 2], 5), segment=x[:, 2]
+            tokens=x[:, 0], position=x[:, 1],age=x[:, 2], segment=x[:, 3]
         )
 
         for i, layer in enumerate(self.encoders):
@@ -88,7 +88,7 @@ class Transformer(nn.Module):
     def forward_finetuning_cls(self, x, padding_mask):
         logits = list()
         x, _ = self.embedding(
-            tokens=x[:, 0], position=x[:, 1], age=torch.full_like(x[:, 2], 5), segment=x[:, 2]
+            tokens=x[:, 0], position=x[:, 1], age=x[:, 2], segment=x[:, 3]
         )
         for i, layer in enumerate(self.encoders):
             x = torch.einsum("bsh, bs -> bsh", x, padding_mask)
