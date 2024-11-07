@@ -28,11 +28,11 @@ model:
     vocab_size: 586 #this one you should knwo in advance (fix later)
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}
-    hidden_size: 2
-    hidden_ff: 2
+    hidden_size: 30
+    hidden_ff: 100
     hidden_act: "swish"
     n_encoders: 1
-    n_heads: 2
+    n_heads: 3
     n_local: 7
     local_window_size: 38
     norm_type: "rezero"
@@ -67,8 +67,8 @@ model:
     version: ${version}
 
 trainer:
-  accelerator: 'cpu'
-  devices: 1
+  accelerator: 'gpu'
+  devices: [0]
   callbacks:
     - ${callbacks.checkpoint}
     - ${callbacks.lr_monitor}
