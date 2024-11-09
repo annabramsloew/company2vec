@@ -10,7 +10,7 @@ sources:
   - ${data.sources.capital}
   - ${data.sources.punits}
   - ${data.sources.financials}
-  # - ${data.sources.employees}
-  # - ${data.sources.leadership}
-  # - ${data.sources.ownership}
+  - ${data.sources.employees}
+  - ${data.sources.leadership}
+  - ${data.sources.ownership}
   

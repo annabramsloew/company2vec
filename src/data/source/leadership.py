@@ -73,7 +73,7 @@ class LeadershipTokens(TokenSource):
 
     def indexed(self) -> dd.DataFrame:
         """Loads the parsed data, sets the index, then saves the indexed data"""
-        result = self.parsed().dropna(subset='FROM_DATE').set_index("CVR").rename(columns={'RelationType': 'PARTICIPANT_TYPE', 'FromDate': 'FROM_DATE', 'Experience': 'EXPERIENCE'})
+        result = self.parsed().dropna(subset='FromDate').set_index("CVR").rename(columns={'RelationType': 'PARTICIPANT_TYPE', 'FromDate': 'FROM_DATE', 'Experience': 'EXPERIENCE'})
         assert isinstance(result, dd.DataFrame)
         return result
 
@@ -104,8 +104,18 @@ class LeadershipTokens(TokenSource):
                 latest_year = max(years)
 
                 # Load the latest year
-                ddf = dd.read_parquet(interim_path / f"active_participants_{latest_year}.parquet")
+                ddf = dd.read_parquet(interim_path / f"active_participants_{latest_year}.parquet", dtype = {"FromDate": "timestamp[ns]",
+                                                                                                            "CVR": int,
+                                                                                                            "EntityID": int,
+                                                                                                            "RelationType": str,
+                                                                                                            "Experience": int})
+                # ensure columns are correct types
+                ddf['CVR'] = ddf['CVR'].astype(int)
+                ddf['EntityID'] = ddf['EntityID'].astype(int)
+                ddf['Experience'] = ddf['Experience'].astype(int)
+
                 return ddf
+            
             else:
                 print("No interim data found at path: ", interim_path)
                 pass

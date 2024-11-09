@@ -1,0 +1,16 @@
+defaults:
+  - _self_
+  - /data/sources
+  
+target: src.data.datamodule
+
+single_threaded: True
+interact: false
+
+client:
+  _target_: dask.distributed.Client
+  n_workers: 0
+  threads_per_worker: 1
+  memory_limit: "4GB"
+  dashboard_address: :32895
+  local_directory: ./

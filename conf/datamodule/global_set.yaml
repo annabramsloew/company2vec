@@ -5,7 +5,7 @@ defaults:
 
 _target_: src.data.datamodule.C2VDataModule
 
-batch_size: 2
+batch_size: 8
 num_workers: 0
 
 ### If you want to train the model on subsets of data

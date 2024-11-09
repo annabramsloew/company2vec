@@ -25,14 +25,14 @@ model:
   _target_: src.transformer.models.TransformerEncoder
   _convert_: all
   hparams:
-    vocab_size: 586 #this one you should knwo in advance (fix later)
+    vocab_size: 692 #this one you should knwo in advance (fix later)
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}
-    hidden_size: 30
-    hidden_ff: 100
+    hidden_size: 280
+    hidden_ff: 2210
     hidden_act: "swish"
-    n_encoders: 1
-    n_heads: 3
+    n_encoders: 5
+    n_heads: 10
     n_local: 7
     local_window_size: 38
     norm_type: "rezero"
