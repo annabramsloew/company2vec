@@ -35,7 +35,7 @@ class EmployeeTokens(TokenSource):
         ]
     )
     
-    input_csv: Path = Path(r"/Users/nikolaibeckjensen/Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec/data/Tables")
+    input_csv: Path = DATA_ROOT / "Tables"
     earliest_start: str = "01/01/2008"
 
     

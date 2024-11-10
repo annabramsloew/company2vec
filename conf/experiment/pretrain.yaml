@@ -7,10 +7,10 @@ defaults:
   
 #GENERAL
 version: 0.0
-implementation: "test"
+implementation: "test_v1"
 comments: "testing"
-name: "pre_training"
-model_name: "test"
+name: "pre_training_v1"
+model_name: "test_v1"
 
 seed: 2024
 

@@ -34,7 +34,7 @@ except Exception as e:
 def main(cfg):
 
     # Workaround for hydra breaking import of local package - don't need if running as module "-m src.train"
-    # sys.path.append(hydra.utils.get_original_cwd())
+    #sys.path.append(hydra.utils.get_original_cwd())
     
     ##GLOBAL SEED
     seed_everything(cfg.seed)

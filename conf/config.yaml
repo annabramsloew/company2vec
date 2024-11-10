@@ -8,8 +8,8 @@ version: "0.0"
 implementation: "v0"
 name: "test"
 
-local_path: "Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec"
-user_path: "/Users/nikolaibeckjensen/"
+local_path: "master_thesis" #"Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec"
+user_path: "/zhome/49/1/147319/" #"/Users/nikolaibeckjensen/"
 
 # checkpoint
-ckpt_path: null
+ckpt_path: /zhome/49/1/147319/master_thesis/checkpoints

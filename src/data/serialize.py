@@ -187,6 +187,7 @@ class Serializer(Generic[T]):
         """
 
         if not self.validates(f, ba):
+            #print(_jsonify(ba))
             raise ValidationError("Result found, but calling parameters does not match stored parameters.")
 
         return self.load_result(f, ba)
@@ -195,6 +196,9 @@ class Serializer(Generic[T]):
         """Returns whether a stored result could be validated."""
         with open(self.get_path(f, ba) / "_arguments.json") as f_:
             stored_arguments = json.load(f_)
+            # print(stored_arguments)
+            # print("Above is validation:")
+            # print()
 
         return bool(_jsonify(ba) == stored_arguments)
 

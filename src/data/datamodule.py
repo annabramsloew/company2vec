@@ -484,14 +484,14 @@ class C2VDataModule(pl.LightningDataModule):
 
 
 
-if __name__ == "__main__":
-    # initiate corpus with production units and annual reports as sources
-    corpus = Corpus(
-                    name = "age_test_ownership", 
-                    sources = [OwnershipTokens()],
-                    population = FromAnnualReports(token_data=AnnualReportTokens())
-        )
-    corpus.combined_sentences("val")
+# if __name__ == "__main__":
+#     # initiate corpus with production units and annual reports as sources
+#     corpus = Corpus(
+#                     name = "age_test_ownership", 
+#                     sources = [OwnershipTokens()],
+#                     population = FromAnnualReports(token_data=AnnualReportTokens())
+#         )
+#     corpus.combined_sentences("val")
 
 #     # initiate vocabulary
 #     vocab = CorpusVocabulary(corpus=corpus, name='test_vocab_new')

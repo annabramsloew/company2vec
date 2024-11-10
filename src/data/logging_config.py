@@ -22,7 +22,6 @@ elif Path.home().name == "147319":
 else: 
     DATA_ROOT = Path.home() / "data"
 
-
 start_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_file_path = LOG_ROOT / f"serialize_{start_datetime}.log"
 
