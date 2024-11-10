@@ -142,7 +142,7 @@ class Corpus:
         combined_sentences = combined_sentences.reset_index().set_index("CVR", sorted=True)
 
         assert isinstance(combined_sentences, dd.DataFrame)
-
+git 
         return combined_sentences
 
 
@@ -286,7 +286,7 @@ class C2VDataModule(pl.LightningDataModule):
 
     # Data loading params
     batch_size: int = 8
-    num_workers: int = 0
+    num_workers: int = 2
     persistent_workers: bool = False
     pin_memory: bool = False
     subset: bool = False

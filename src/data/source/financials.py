@@ -59,9 +59,9 @@ class AnnualReportTokens(TokenSource):
         result = (
             self.indexed()
         .assign(
-                COMPANY_TYPE=lambda x: x.COMPANY_TYPE.map({"A/S": "CTYP_AS", 
-                                                            "APS": "CTYP_APS", 
-                                                            "IVS": "CTYP_IVS",
+                COMPANY_TYPE=lambda x: x.COMPANY_TYPE.map({"A/S": "CTYPE_AS", 
+                                                            "APS": "CTYPE_APS", 
+                                                            "IVS": "CTYPE_IVS",
                                                             "[UNK]": "[UNK]"}, meta=('COMPANY_TYPE', 'object')),
 
                 INDUSTRY=lambda x: x.INDUSTRY.apply(lambda ind: "IND_" + ind[:4] if ind != "[UNK]" else ind, meta=('INDUSTRY', 'object')),
