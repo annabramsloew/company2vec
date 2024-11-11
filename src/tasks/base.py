@@ -109,8 +109,7 @@ class Task:
 
         document = align_document(document)  # Cut document before 1st January 2023
 
-        #TODO: REMOVE
-        if 1==2: #is_train:
+        if is_train:
 
             # AUGMENTATION WITH NOISE
             p = np.random.uniform(low=0.0, high=1.0, size=[5])
