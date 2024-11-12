@@ -83,7 +83,7 @@ class Task:
     # Task specific
     ...
 
-    def register(self, datamodule: "L2VDataModule") -> None:
+    def register(self, datamodule: "C2VDataModule") -> None:
         self.datamodule = datamodule
 
     def get_preprocessor(
@@ -107,7 +107,7 @@ class Task:
                 random.sample(x, k=len(x)) for x in document.sentences
             ]
 
-        document = align_document(document)  # Cut document before 1st January 2023
+        document = align_document(document)  # Cut document to only include sentences before cutoff date
 
         if is_train:
 

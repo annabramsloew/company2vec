@@ -157,9 +157,18 @@ class MLM(Task):
         legal_mask = (token_ids[1:] != sep_id) & (token_ids[1:] != unk_id)
         legal_indx = np.arange(start=1, stop=n_tokens)[legal_mask]
 
-        indx_to_mask = np.random.choice(
-            a=legal_indx, size=num_tokens_to_mask, replace=False
-        )
+        if len(legal_indx) < num_tokens_to_mask:
+            log.warning("Not enough tokens for full mask. Masking single legal token")
+            log.debug(f"Token ids: {token_ids}")
+            log.debug(f"Legal mask: {legal_mask}")
+
+            indx_to_mask = np.random.choice(
+                a=legal_indx, size=1, replace=False
+            )
+        else:
+            indx_to_mask = np.random.choice(
+                a=legal_indx, size=num_tokens_to_mask, replace=False
+            )
 
         max_masked_num = np.floor(self.mask_ratio * self.max_length).astype(np.int32)
 
