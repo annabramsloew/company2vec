@@ -85,13 +85,14 @@ def resample_document(document: CompanyDocument) -> CompanyDocument:
         document.abspos = [
             i for idx, i in enumerate(document.abspos) if idx not in idx_to_remove
         ]
-    document.age = [i for idx, i in enumerate(document.age) if idx not in idx_to_remove]
+        document.age = [i for idx, i in enumerate(document.age) if idx not in idx_to_remove]
 
     # Added for v8_1_43
     # Each document should start with [0,1]
-    if document.abspos[0] != 1:
-        offset = document.abspos[0] - 1
-        document.abspos = [np.maximum(0, i - offset) for i in document.abspos]
+  
+        if document.abspos[0] != 1:
+            offset = document.abspos[0] - 1
+            document.abspos = [np.maximum(0, i - offset) for i in document.abspos]
 
     return document
 

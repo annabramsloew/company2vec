@@ -142,7 +142,6 @@ class Corpus:
         combined_sentences = combined_sentences.reset_index().set_index("CVR", sorted=True)
 
         assert isinstance(combined_sentences, dd.DataFrame)
-git 
         return combined_sentences
 
 
