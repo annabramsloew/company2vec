@@ -63,21 +63,19 @@ class EmployeeTokens(TokenSource):
                 COMPANY_STATUS=lambda x: x.COMPANY_STATUS.map({
                                                                 "NORMAL": "CSTAT_ACTIVE",
                                                                 "AKTIV": "CSTAT_ACTIVE",
-                                                                "UNDER REASSUMERING" : "CSTAT_OTHER",
-                                                                "UNDER FRIVILLIG LIKVIDATION" : "CSTAT_OTHER",
-                                                                "UNDER REKONSTRUKTION" : "CSTAT_DISTRESS",
-                                                                "UNDER TVANGSOPLØSNING" : "CSTAT_DISTRESS",
-                                                                "UNDER KONKURS" : "CSTAT_DISTRESS",
-                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER SPALTNING" : "CSTAT_DISSOLVED",
+                                                                "UNDER FRIVILLIG LIKVIDATION" : "CSTAT_ONGOING_LIQUIDATION",
+                                                                "UNDER TVANGSOPLØSNING" : "CSTAT_ONGOING_DISSOLUTION",
+                                                                "UNDER KONKURS" : "CSTAT_ONGOING_BANKRUPTCY",
                                                                 "OPLØST EFTER ERKLÆRING" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER SPALTNING" : "CSTAT_DISSOLVED",
                                                                 "OPLØST EFTER FUSION" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING" : "CSTAT_DISSOLVED",
                                                                 "OPLØST EFTER FRIVILLIG LIKVIDATION" : "CSTAT_DISSOLVED",
                                                                 "SLETTET" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER KONKURS" : "CSTAT_BANKRUPT",
-                                                                "TVANGSOPLØST" : "CSTAT_BANKRUPT",
-                                                                "[UNK]": "[UNK]"
+                                                                "OPLØST EFTER KONKURS" : "CSTAT_DISSOLVED",
+                                                                "TVANGSOPLØST" : "CSTAT_DISSOLVED",
+                                                                "[UNK]" : "[UNK]"
                                                             }, meta=('COMPANY_STATUS', 'object')), 
                 MUNICIPALITY=lambda x: x.MUNICIPALITY.apply(lambda mun: "MUN_" + mun if mun != "[UNK]" else mun, meta=('MUNICIPALITY', 'object'))
             )
@@ -133,6 +131,9 @@ class EmployeeTokens(TokenSource):
 
             # merge
             df_employees = enrich_with_asof_values(df_employees, df_registrations)
+
+            # remove any entries with missing values in both 'COMPANY_TYPE', 'INDUSTRY', 'COMPANY_STATUS' and 'MUNICIPALITY
+            df_employees = df_employees.dropna(subset=['CompanyType', 'Industry', 'Status', 'Municipality'],how='all')
 
             # Convert to Dask DataFrame and append to list
             ddf_list.append(

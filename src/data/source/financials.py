@@ -33,7 +33,7 @@ class AnnualReportTokens(TokenSource):
             Binned("PROFIT_LOSS", prefix="PROFIT_LOSS", n_bins=100),
             Binned("EQUITY", prefix="EQUITY", n_bins=100),
             Binned("ASSETS", prefix="ASSETS", n_bins=100),
-            Binned("LIABILITIES_AND_EQUITY", prefix="LIABILITIES_AND_EQUITY", n_bins=100)
+            Binned("LIABILITIES", prefix="LIABILITIES", n_bins=100)
         ]
     )
 
@@ -69,22 +69,20 @@ class AnnualReportTokens(TokenSource):
                 COMPANY_STATUS=lambda x: x.COMPANY_STATUS.map({
                                                                 "NORMAL": "CSTAT_ACTIVE",
                                                                 "AKTIV": "CSTAT_ACTIVE",
-                                                                "UNDER REASSUMERING" : "CSTAT_OTHER",
-                                                                "UNDER FRIVILLIG LIKVIDATION" : "CSTAT_OTHER",
-                                                                "UNDER REKONSTRUKTION" : "CSTAT_DISTRESS",
-                                                                "UNDER TVANGSOPLØSNING" : "CSTAT_DISTRESS",
-                                                                "UNDER KONKURS" : "CSTAT_DISTRESS",
-                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER SPALTNING" : "CSTAT_DISSOLVED",
+                                                                "UNDER FRIVILLIG LIKVIDATION" : "CSTAT_ONGOING_LIQUIDATION",
+                                                                "UNDER TVANGSOPLØSNING" : "CSTAT_ONGOING_DISSOLUTION",
+                                                                "UNDER KONKURS" : "CSTAT_ONGOING_BANKRUPTCY",
                                                                 "OPLØST EFTER ERKLÆRING" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER SPALTNING" : "CSTAT_DISSOLVED",
                                                                 "OPLØST EFTER FUSION" : "CSTAT_DISSOLVED",
+                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING" : "CSTAT_DISSOLVED",
                                                                 "OPLØST EFTER FRIVILLIG LIKVIDATION" : "CSTAT_DISSOLVED",
                                                                 "SLETTET" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER KONKURS" : "CSTAT_BANKRUPT",
-                                                                "TVANGSOPLØST" : "CSTAT_BANKRUPT",
+                                                                "OPLØST EFTER KONKURS" : "CSTAT_DISSOLVED",
+                                                                "TVANGSOPLØST" : "CSTAT_DISSOLVED",
                                                                 "[UNK]" : "[UNK]"
-                                                                }, meta=('COMPANY_STATUS', 'object')), 
+                                                            }, meta=('COMPANY_STATUS', 'object')),  
                 MUNICIPALITY=lambda x: x.MUNICIPALITY.apply(lambda mun: "MUN_" + mun if mun != "[UNK]" else mun, meta=('MUNICIPALITY', 'object'))
             ).pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
@@ -129,7 +127,7 @@ class AnnualReportTokens(TokenSource):
             "ProfitLoss",
             "Equity", 
             "Assets", 
-            "LiabilitiesAndEquity"
+            "LiabilitiesOtherThanProvisions"
         ]
 
         columns_currency = ["year", "month", "from_currency", "rate"]
@@ -140,7 +138,7 @@ class AnnualReportTokens(TokenSource):
             "PROFIT_LOSS",
             "ASSETS",
             "EQUITY",
-            "LIABILITIES_AND_EQUITY",
+            "LIABILITIES",
             "INDUSTRY",
             "COMPANY_TYPE",
             "MUNICIPALITY",
@@ -190,7 +188,7 @@ class AnnualReportTokens(TokenSource):
                 "ProfitLoss": float,
                 "Equity": float,
                 "Assets": float,
-                "LiabilitiesAndEquity": float,
+                "LiabilitiesOtherThanProvisions": float,
             },
             blocksize="256MB"
         ).compute()
@@ -239,7 +237,7 @@ class AnnualReportTokens(TokenSource):
         
         # convert currency
         ddf = convert_currency(ddf, ddf_currency, 
-                        amount_cols=['ProfitLoss', 'Equity', 'Assets', 'LiabilitiesAndEquity'], 
+                        amount_cols=['ProfitLoss', 'Equity', 'Assets', 'LiabilitiesOtherThanProvisions'], 
                         currency_col='Currency', 
                         date_col='PublicationDate')
 
@@ -250,7 +248,7 @@ class AnnualReportTokens(TokenSource):
             "ProfitLoss":"PROFIT_LOSS",
             "Assets":"ASSETS",
             "Equity":"EQUITY",
-            "LiabilitiesAndEquity":"LIABILITIES_AND_EQUITY",
+            "LiabilitiesOtherThanProvisions":"LIABILITIES",
             "Industry":"INDUSTRY",
             "CompanyType":"COMPANY_TYPE",
             "Municipality":"MUNICIPALITY",

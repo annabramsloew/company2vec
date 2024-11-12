@@ -69,7 +69,7 @@ class FromAnnualReports(Population):
 
         # fetch the annual report tokens and keep only the unique CVRs
         ls = self.token_data
-        result = ls.indexed().drop(columns=['ASSETS', 'LIABILITIES_AND_EQUITY', 'EQUITY', 'PROFIT_LOSS', "MUNICIPALITY", 'INDUSTRY', 'COMPANY_TYPE', 'COMPANY_STATUS'])
+        result = ls.indexed().drop(columns=['ASSETS', 'LIABILITIES', 'EQUITY', 'PROFIT_LOSS', "MUNICIPALITY", 'INDUSTRY', 'COMPANY_TYPE', 'COMPANY_STATUS'])
         result = result.reset_index().drop_duplicates(subset="CVR")
 
         # fetch founding date information from the CompanyInfo table
