@@ -37,3 +37,8 @@ punits:
   downsample: False
 
 
+# Status
+status:
+  _target_: src.data.source.status.StatusTokens
+  name: "status"
+  downsample: False

@@ -72,17 +72,20 @@ class AnnualReportTokens(TokenSource):
                                                                 "UNDER FRIVILLIG LIKVIDATION" : "CSTAT_ONGOING_LIQUIDATION",
                                                                 "UNDER TVANGSOPLØSNING" : "CSTAT_ONGOING_DISSOLUTION",
                                                                 "UNDER KONKURS" : "CSTAT_ONGOING_BANKRUPTCY",
-                                                                "OPLØST EFTER ERKLÆRING" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER SPALTNING" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER FUSION" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING" : "CSTAT_DISSOLVED",
-                                                                "OPLØST EFTER FRIVILLIG LIKVIDATION" : "CSTAT_DISSOLVED",
+                                                                "UNDER REKONSTRUKTION" : "CSTAT_ONGOING_RECONSTRUCTION",
+                                                                "UNDER REASSUMERING" : "CSTAT_ONGOING_REASSUMPTION",
+                                                                "OPLØST EFTER ERKLÆRING" : "CSTAT_DISSOLVED_DECLARATION",
+                                                                "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "CSTAT_DISSOLVED_MERGER",
+                                                                "OPLØST EFTER SPALTNING" : "CSTAT_DISSOLVED_MERGER",
+                                                                "OPLØST EFTER FUSION" : "CSTAT_DISSOLVED_MERGER",
+                                                                "OPLØST EFTER FRIVILLIG LIKVIDATION" : "CSTAT_DISSOLVED_LIQUIDATION",
+                                                                'OPLØST EFTER GRÆNSEOVERSKRIDENDE HJEMSTEDSFLYTNING' : "CSTAT_DISSOLVED_MIGRATION",
                                                                 "SLETTET" : "CSTAT_DISSOLVED",
                                                                 "OPLØST EFTER KONKURS" : "CSTAT_DISSOLVED",
                                                                 "TVANGSOPLØST" : "CSTAT_DISSOLVED",
+                                                                "UDEN RETSVIRKNING" : "CSTAT_NO_LEGAL_EFFECT",
                                                                 "[UNK]" : "[UNK]"
-                                                            }, meta=('COMPANY_STATUS', 'object')),  
+                                                            }, meta=('COMPANY_STATUS', 'object')),
                 MUNICIPALITY=lambda x: x.MUNICIPALITY.apply(lambda mun: "MUN_" + mun if mun != "[UNK]" else mun, meta=('MUNICIPALITY', 'object'))
             ).pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
@@ -261,6 +264,7 @@ class AnnualReportTokens(TokenSource):
             .rename(columns=column_map)
             .loc[lambda x: x.FROM_DATE >= self.earliest_start]
         )
+        
 
         ddf = ddf.fillna({
             'COMPANY_TYPE': '[UNK]',
@@ -268,6 +272,8 @@ class AnnualReportTokens(TokenSource):
             'COMPANY_STATUS': '[UNK]',
             'MUNICIPALITY': '[UNK]',
         })
+
+        ddf['COMPANY_STATUS'] = ddf['COMPANY_STATUS'].str.upper()
 
 
         if self.downsample:

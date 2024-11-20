@@ -13,4 +13,5 @@ sources:
   - ${data.sources.employees}
   - ${data.sources.leadership}
   - ${data.sources.ownership}
+  - ${data.sources.status}
   

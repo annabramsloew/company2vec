@@ -1,4 +1,3 @@
-# # Adapted from: https://github.com/SocialComplexityLab/life2vec/blob/v1.0.0/src/data_new/sources/education.py
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -17,21 +16,17 @@ from .base import FIELD_TYPE, TokenSource, Binned
 from .source_helpers import enrich_with_asof_values
 
 @dataclass
-class EmployeeTokens(TokenSource):
+class StatusTokens(TokenSource):
     """This generates tokens based on information from the Employee and Registrations table .
 
     :param input_csv: Path to folder where the Employee and Registrations tables are stored.
     :param earliest_start: The earliest start date of a hospital encounter.
     """
 
-    name: str = "employees"
+    name: str = "status"
     fields: List[FIELD_TYPE] = field(
         default_factory=lambda: [
-            "COMPANY_TYPE", 
-            "INDUSTRY", 
             "COMPANY_STATUS", 
-            "MUNICIPALITY", 
-            Binned("EMPLOYEE_COUNT", prefix="EMPLOYEES", n_bins=100)
         ]
     )
     
@@ -55,11 +50,6 @@ class EmployeeTokens(TokenSource):
         result = (
             self.indexed()
             .assign(
-                COMPANY_TYPE=lambda x: x.COMPANY_TYPE.map({"A/S": "CTYPE_AS", 
-                                                            "APS": "CTYPE_APS", 
-                                                            "IVS": "CTYPE_IVS",
-                                                            "[UNK]" : "[UNK]"}, meta=('COMPANY_TYPE', 'object')),
-                INDUSTRY=lambda x: x.INDUSTRY.apply(lambda ind: "IND_" + ind[:4] if ind != "[UNK]" else ind, meta=('INDUSTRY', 'object')), 
                 COMPANY_STATUS=lambda x: x.COMPANY_STATUS.map({
                                                                 "NORMAL": "CSTAT_ACTIVE",
                                                                 "AKTIV": "CSTAT_ACTIVE",
@@ -79,8 +69,7 @@ class EmployeeTokens(TokenSource):
                                                                 "TVANGSOPLØST" : "CSTAT_DISSOLVED",
                                                                 "UDEN RETSVIRKNING" : "CSTAT_NO_LEGAL_EFFECT",
                                                                 "[UNK]" : "[UNK]"
-                                                            }, meta=('COMPANY_STATUS', 'object')),
-                MUNICIPALITY=lambda x: x.MUNICIPALITY.apply(lambda mun: "MUN_" + mun if mun != "[UNK]" else mun, meta=('MUNICIPALITY', 'object'))
+                                                            }, meta=('COMPANY_STATUS', 'object'))
             )
             .pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
@@ -110,67 +99,43 @@ class EmployeeTokens(TokenSource):
         # read CVR lookup table to use for filtering
         df_cvr = pd.read_csv(self.input_csv / "CVRFiltered" / "CVR_list.csv", index_col=0)
         
-        ddf_list = []
-        files = os.listdir(self.input_csv / "EmployeeCounts")
-        # discard files which are not csv
-        files = [file for file in files if file.endswith('.csv')]
+        path_registrations = self.input_csv / "Registrations"
+        registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv']
+
+        # Load data
+        df_registrations = dd.read_csv(
+            registrations_csv,
+            usecols=["CVR", "FromDate", "ChangeType", "NewValue"],
+            on_bad_lines="error",
+            assume_missing=True,
+            dtype={
+                "CVR": int,
+                "FromDate": str,
+                "ChangeType": str,
+                "NewValue": str
+            },
+            blocksize="256MB",
+        ).compute()
+
+
+        # choose only the relevant cvr numbers
+        df_registrations = df_registrations.loc[df_registrations['CVR'].isin(df_cvr['CVR'].values)]
+
+        # limit registrations to the earliest_start
+        df_registrations['FromDate'] = pd.to_datetime(df_registrations['FromDate'], errors='coerce')
+        df_registrations.dropna(subset=['FromDate'], inplace=True)
+        df_registrations = df_registrations.loc[df_registrations['FromDate'] >= self.earliest_start]
         
-        for i in range(len(files)):
-            print(i)
-
-            # read chunk of employee data
-            df_employees = pd.read_csv(self.input_csv / f"EmployeeCounts/chunk{i}.csv", index_col=0)[['CVR', 'FromDate', 'EmployeeCounts']]
-            df_employees['FromDate'] = pd.to_datetime(df_employees['FromDate'])
-
-            # Filter away data before 2013
-            df_employees = df_employees.loc[df_employees['FromDate'] >= datetime(2013, 1, 1)]
-
-            # read chunk of registration data 
-            df_registrations = pd.read_csv(self.input_csv  / f"Registrations/chunk{i}.csv", index_col=0)
-
-            # filter away CVR's that are not in the lookup table from the employee data and registration data
-            df_employees = df_employees.loc[df_employees['CVR'].isin(df_cvr['CVR'].values)]
-            df_registrations = df_registrations.loc[df_registrations['CVR'].isin(df_cvr['CVR'].values)]
-
-            # merge
-            df_employees = enrich_with_asof_values(df_employees, df_registrations)
-
-            # remove any entries with missing values in both 'COMPANY_TYPE', 'INDUSTRY', 'COMPANY_STATUS' and 'MUNICIPALITY
-            df_employees = df_employees.dropna(subset=['CompanyType', 'Industry', 'Status', 'Municipality'],how='all')
-            
-            # format company status
-            df_employees['Status'] = df_employees['Status'].str.upper()
-
-            # Convert to Dask DataFrame and append to list
-            ddf_list.append(
-                        dd.from_pandas(df_employees, 
-                                        npartitions=1)
-                        )
-        # Concatenate all DataFrames in the list
-        ddf = dd.concat(ddf_list, axis=0).rename(columns = {
-                    'CompanyType' : 'COMPANY_TYPE',
-                    'Industry' : 'INDUSTRY',
-                    'Status' : 'COMPANY_STATUS', 
-                    'Municipality' : 'MUNICIPALITY', 
-                    'FromDate' : 'FROM_DATE',
-                    'EmployeeCounts' : 'EMPLOYEE_COUNT'
-                })
+        # choose only the relevant change types
+        df_registrations = df_registrations.loc[df_registrations['ChangeType'] == 'Status']
+        df_registrations = df_registrations[['CVR', 'FromDate', 'NewValue']].rename(columns={'FromDate':'FROM_DATE', 'NewValue': 'COMPANY_STATUS'})
         
-       
-        
-  
+        # format company status
+        df_registrations['COMPANY_STATUS'] = df_registrations['COMPANY_STATUS'].str.upper()
+        df_registrations = df_registrations.fillna({'COMPANY_STATUS': '[UNK]'})
 
-        del ddf_list
-
-
-        # Handle missing values and deal with datatypes
-        ddf = ddf.fillna({
-            'COMPANY_TYPE': '[UNK]',
-            'INDUSTRY': '[UNK]',
-            'COMPANY_STATUS': '[UNK]',
-            'MUNICIPALITY': '[UNK]',
-            'EMPLOYEE_COUNT': '[UNK]'
-        })
+        # convert back to dask dataframe
+        ddf = dd.from_pandas(df_registrations, npartitions=5)
         
         assert isinstance(ddf, dd.DataFrame)
 
@@ -179,6 +144,7 @@ class EmployeeTokens(TokenSource):
 
 #use for debugging
 if __name__ == "__main__":
-    tokens = EmployeeTokens()
+    tokens = StatusTokens()
+    parsed_data = tokens.parsed()
     parsed_data = tokens.tokenized()
-    
+    a = 1
