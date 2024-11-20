@@ -54,7 +54,9 @@ class LeadershipTokens(TokenSource):
         result = (
             self.indexed()
             .assign(
-                PARTICIPANT_TYPE=lambda x: x.PARTICIPANT_TYPE.map({'BOARD_MEMBER': 'LEADER_BOARD', 'C_LEVEL_EXECUTIVE': 'LEADER_EXEC'},meta=('PARTICIPANT_TYPE', 'object')),
+                PARTICIPANT_TYPE=lambda x: x.PARTICIPANT_TYPE.map({'BOARD_MEMBER': 'LEADER_BOARD', 'CEO': 'LEADER_CEO',
+                                                                   'DIRECTOR': 'LEADER_DIRECTOR', 'CHAIRMAN': 'LEADER_CHAIRMAN'
+                                                                   },meta=('PARTICIPANT_TYPE', 'object')),
             )
             .pipe(sort_partitions, columns=["FROM_DATE"])[
                 ["FROM_DATE", *self.field_labels()]
@@ -88,39 +90,6 @@ class LeadershipTokens(TokenSource):
         """Parses the CSV file, applies some basic filtering, then saves the result
         as compressed parquet file, as this is easier to parse than the CSV for the
         next steps"""
-
-
-        # interim data
-        # interim_path = DATA_ROOT / "interim" / "leadership"
-        # if os.path.exists(interim_path):
-
-
-        #     files = os.listdir(interim_path)
-
-        #     if len(files) > 0:
-                
-        #         # file paths ends with _YYYY.parquet. We want to get the last year
-        #         years = [int(file.split("_")[-1].split(".")[0]) for file in files]
-        #         latest_year = max(years)
-
-        #         # Load the latest year
-        #         ddf = dd.read_parquet(interim_path / f"active_participants_{latest_year}.parquet", dtype = {"FromDate": "timestamp[ns]",
-        #                                                                                                     "CVR": int,
-        #                                                                                                     "EntityID": int,
-        #                                                                                                     "RelationType": str,
-        #                                                                                                     "Experience": int})
-        #         # ensure columns are correct types
-        #         ddf['CVR'] = ddf['CVR'].astype(int)
-        #         ddf['EntityID'] = ddf['EntityID'].astype(int)
-        #         ddf['Experience'] = ddf['Experience'].astype(int)
-
-        #         return ddf
-            
-        #     else:
-        #         print("No interim data found at path: ", interim_path)
-        #         pass
-        # else:
-        #     raise ValueError("No interim data found at path: ", interim_path)
 
         columns_leadership = [
             "CVR",
@@ -193,9 +162,8 @@ class LeadershipTokens(TokenSource):
         ddf_leadership['RelationType'] = ddf_leadership['RelationType'].str.strip().str.upper()
         ddf_leadership['RelationType'] = ddf_leadership['RelationType'].map(management_map)
 
-        #filter away rows not in ParticipantType = ['BOARD_MEMBER', 'C_LEVEL_EXECUTIVE']
+        #filter away rows not in ParticipantType mapping
         ddf_leadership = ddf_leadership.loc[ddf_leadership['RelationType'].isin(['BOARD_MEMBER', 'DIRECTOR','CHAIRMAN', 'CEO'])]
-        test = ddf_leadership.compute()
 
         #turn date column into datetime and fill missing values with 2000-01-01
         ddf_leadership['Date'] = dd.to_datetime(ddf_leadership['Date'], errors='coerce')
@@ -207,12 +175,12 @@ class LeadershipTokens(TokenSource):
         del df_cvr
 
         # Summarize leadership for every CVR per year (per Dec 31st)
-        # List active ParticipantTypes and their corresponding experience
-        ddf_leadership = active_participants_per_year(ddf_leadership)
+        # List active ParticipantTypes and their corresponding experience in each position (computed as their current service time)
+        df_leadership = active_participants_per_year(ddf_leadership)
 
         # Rename columns
-        ddf = (ddf_leadership
-            .rename(columns=dict(zip(ddf_leadership.columns, output_columns)))
+        ddf = (df_leadership
+            .rename(columns=dict(zip(df_leadership.columns, output_columns)))
         )
 
         if self.downsample:
@@ -224,6 +192,6 @@ class LeadershipTokens(TokenSource):
     
 
 # Used for debugging
-if __name__ == "__main__":
-    report_tokens = LeadershipTokens()
-    report_tokens.tokenized()
+# if __name__ == "__main__":
+#     report_tokens = LeadershipTokens()
+#     report_tokens.tokenized()

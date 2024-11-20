@@ -132,13 +132,25 @@ def convert_currency( df: dd.DataFrame, lookup_table: dd.DataFrame,
 
     return final_df
 
-def active_participants_per_year(df: dd.DataFrame) -> dd.DataFrame:
+def generate_december_31_dates(min_date, max_date):
+    """
+    Generate all 31st December dates between min_date and max_date.
+    
+    Args:
+        min_date (pd.Timestamp): The minimum date.
+        max_date (pd.Timestamp): The maximum date.
+    
+    Returns:
+        pd.DatetimeIndex: A DatetimeIndex containing all 31st December dates between min_date and max_date.
+    """
+    dates = pd.date_range(start=min_date, end=max_date, freq='YE-DEC')
+    return dates
+
+def active_participants_per_year(df: dd.DataFrame) -> pd.DataFrame:
     """
     Computes a summary of active participants per company ('CVR') per year based on
-    the provided DataFrame. The function groups records by company and iterates over
-    years from 2013 to the latest available year (capped at 2023). It filters active
-    entries per year based on entry and exit dates, and returns a summary DataFrame
-    with experience data.
+    the provided DataFrame. Experience is computed as the time between entry in a given company
+    and the yearly cutoff date.
     
     Parameters:
     df (dd.DataFrame): A Dask DataFrame containing participant records with 
@@ -146,87 +158,67 @@ def active_participants_per_year(df: dd.DataFrame) -> dd.DataFrame:
                        'RelationType', and 'Experience'.
     
     Returns:
-    dd.DataFrame: A Dask DataFrame summarizing experience data per company ('CVR') 
+    dd.DataFrame: A Pandas DataFrame summarizing experience data per company ('CVR') 
                   and year, with details on participants' experience levels and 
-                  relationship types. A row per company per year with lists of 
-                  experience corresponding relation types.
+                  relationship types.
     """
-
-    # Compute input dd.DataFrame
+    
+    #transition to pandas to compute experience
     df = df.compute()
 
-    # Create a DataFrame to store results
-    results = pd.DataFrame(columns=['FromDate', 'CVR', 'EntityID', 'RelationType', 'Experience'])
+    #sort by person, CVR, RelationType and Date
+    df.sort_values(by=['EntityID','CVR','RelationType', 'Date'],inplace=True)
+    df['identifier'] = df['CVR'].astype(str) + df['EntityID'].astype(str) + df['RelationType']
+    #check if the previous row has the same identifier
+    df['helper1']  = (df['identifier'] == df['identifier'].shift(1))
 
-    #for hvert år først regn experience
-    for year in range(2013, 2024):
-        print(year)
-        counter = 0
+    # check if relation type is the same and the previous participation was an exit
+    df['helper2'] = (df['RelationType'] == df['RelationType'].shift(1)) & (df['Participation'].shift(1) == 'exit')
+    # find the first row of a new position for row identifier
+    df['helper3'] = df['helper1'] * ~df['helper2']
 
-        cut_off_date = pd.Timestamp(year=year, month=12, day=31)
-        df_current_year = df.loc[df['Date'] <= cut_off_date]
+    # add a row identifier which is incremented with one if the new_column is False
+    df['row_identifier'] = (~df['helper3']).cumsum()
 
-        df_experience = df_current_year.groupby('EntityID')['CVR'].nunique().reset_index()
-        df_experience.columns = ['EntityID', 'Experience']
+    # group by cvr, entity_id and relation type to get a column with entry and exit date
+    df_grouped = df.groupby(['CVR','EntityID','RelationType','row_identifier']).agg({'Date':['min','max']}).reset_index()
 
-        df_current_year = df_current_year.merge(df_experience, on='EntityID', how='left')
+    # if min == max, then set the max to todays date, as there is no exit date
+    df_grouped.loc[df_grouped[('Date','min')] == df_grouped[('Date','max')],('Date','max')] = pd.to_datetime('today')
 
+    #cut off date for experience calculation is 2013-01-01, all exits before this date are removed
+    df_grouped = df_grouped.loc[df_grouped[('Date','max')] >= pd.to_datetime('2013-01-01')]
 
-        # Group by CVR to process each company separately
-        for cvr, group in df_current_year.groupby('CVR'):
+    # Create an empty DataFrame to store the expanded rows
+    df_expanded = pd.DataFrame(columns=['Date','CVR', 'EntityID', 'RelationType','Experience'])
+    i = 0
+    # Iterate over each row in the dataframe
+    for _, row in df_grouped.iterrows():
+        i += 1
+        # Generate the 31st December dates
+        dates = generate_december_31_dates(row[('Date', 'min')], row[('Date', 'max')])
+        date_count = len(dates)
+        # Create a new DataFrame for the expanded rows
+        expanded_df = pd.DataFrame({
+            'Date': dates,
+            'CVR': [row['CVR'].item()] * date_count,
+            'EntityID': [row['EntityID'].item()] * date_count,
+            'RelationType': [row['RelationType'].item()] * date_count,
+            'Experience' : list(range(date_count))
+        })
+        # Concatenate the expanded DataFrame to the main DataFrame
+        df_expanded = pd.concat([df_expanded, expanded_df], ignore_index=True)
 
-            counter += 1
-            # Print status update every 10,000 companies processed
-            if counter % 10000 == 0:
-                print(f"Processed {counter} companies...")
-            
-            
-            # Filter participants who have 'entered' before or on the cutoff date
-            df_entries = group[(group['Participation'] == 'entry')]
-            
-            # Get participants who have 'exited' before the cutoff date
-            df_exits = group[(group['Participation'] == 'exit')]
-            
-            # Merge entries and exits on EntityID and RelationType to pair entries with exits
-            merged = pd.merge(
-                df_entries,
-                df_exits,
-                on=['EntityID', 'RelationType'],
-                suffixes=('_entry', '_exit'),
-                how='left'
-            )
+        if i % 10000 == 0:
+            print(f'Processed {i} rows')
 
-            # Keep only entries where either:
-            #   1. There is no exit, or
-            #   2. The entry date is after the exit date
-            active_entries = merged.loc[(merged['Date_exit'].isna()) | (merged['Date_entry'] > merged['Date_exit'])]
+        # if i == 1000:
+        #     break
 
-            # check if there are any active entries else continue
-            if active_entries.empty:
-                continue
+    #filter away all rows where the date is before the cutoff date
+    df_expanded = df_expanded.loc[df_expanded['Date'] >= pd.to_datetime('2013-01-01')]
 
-            # Select the relevant columns for active entries
-            active_entries = active_entries[['CVR_entry','EntityID', 'RelationType', 'Experience_entry']]
-            active_entries.columns = active_entries.columns.str.replace('_entry', '')
-
-            # create a column with the cut off date
-            active_entries['FromDate'] = cut_off_date
-            
-            # append to results
-            results = pd.concat([results, active_entries[['FromDate', 'CVR', 'EntityID', 'RelationType', 'Experience']]])
-
-        #save the results
-        path = DATA_ROOT / "interim" / "leadership"
-        #save to parquet
-        results.to_parquet(path / f"active_participants_{year}.parquet", index=False)
-        
-        # Print final status update
-        print(f"Processing complete. Total companies processed: {counter}")
-
-    # Convert the results into a Dask DataFrame
-    results_dd = dd.from_pandas(results, npartitions=1)
-
-    return results_dd
+    return df_expanded
 
 
 def bin_share(share):
