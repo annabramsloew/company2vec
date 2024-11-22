@@ -6,7 +6,7 @@ no_sep: False
 
 # Augmentation
 p_sequence_timecut: 0.0
-p_sequence_resample: 0.4
+p_sequence_resample: 0.1
 p_sequence_abspos_noise: 0.1
 p_sequence_hide_background: 0.01
 p_sentence_drop_tokens: 0.01
