@@ -1,0 +1,15 @@
+defaults:
+  - _self_
+  - /experiment: "???"
+
+# Values for the different experiments
+seed: 2024
+version: "0.0"
+implementation: "v8"
+name: "test_v8"
+
+local_path: "master_thesis" #"Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec"
+user_path: "/zhome/49/1/147319/" #"/Users/nikolaibeckjensen/"
+
+# checkpoint
+ckpt_path: /zhome/49/1/147319/master_thesis/checkpoints
