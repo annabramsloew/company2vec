@@ -92,7 +92,7 @@ class Corpus:
 
             * SENTENCE - The sentence.
 
-            * AGE - Is calculated bases on the founding_date of each person. .
+            * AGE - Is calculated bases on the founding_date of each person.
 
             * AFTER_THRESHOLD - a boolean column, indicating whether an event is efter
               :attr:`self.threshold`.

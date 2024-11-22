@@ -143,7 +143,7 @@ def generate_december_31_dates(min_date, max_date):
     Returns:
         pd.DatetimeIndex: A DatetimeIndex containing all 31st December dates between min_date and max_date.
     """
-    dates = pd.date_range(start=min_date, end=max_date, freq='YE-DEC')
+    dates = pd.date_range(start=min_date, end=max_date, freq='A-DEC')
     return dates
 
 def active_participants_per_year(df: dd.DataFrame) -> pd.DataFrame:
@@ -189,34 +189,56 @@ def active_participants_per_year(df: dd.DataFrame) -> pd.DataFrame:
     #cut off date for experience calculation is 2013-01-01, all exits before this date are removed
     df_grouped = df_grouped.loc[df_grouped[('Date','max')] >= pd.to_datetime('2013-01-01')]
 
-    # Create an empty DataFrame to store the expanded rows
-    df_expanded = pd.DataFrame(columns=['Date','CVR', 'EntityID', 'RelationType','Experience'])
-    i = 0
-    # Iterate over each row in the dataframe
-    for _, row in df_grouped.iterrows():
-        i += 1
-        # Generate the 31st December dates
-        dates = generate_december_31_dates(row[('Date', 'min')], row[('Date', 'max')])
-        date_count = len(dates)
-        # Create a new DataFrame for the expanded rows
-        expanded_df = pd.DataFrame({
-            'Date': dates,
-            'CVR': [row['CVR'].item()] * date_count,
-            'EntityID': [row['EntityID'].item()] * date_count,
-            'RelationType': [row['RelationType'].item()] * date_count,
-            'Experience' : list(range(date_count))
-        })
-        # Concatenate the expanded DataFrame to the main DataFrame
-        df_expanded = pd.concat([df_expanded, expanded_df], ignore_index=True)
+    # Assuming generate_december_31_dates is a function you defined earlier
+    def generate_december_31_dates_vectorized(min_dates, max_dates):
+        """Generate December 31 dates for vectorized min and max dates."""
+        date_ranges = [list(pd.date_range(start=min_date, end=max_date, freq='A-DEC')) for min_date, max_date in zip(min_dates, max_dates)]
+        return date_ranges
 
-        if i % 10000 == 0:
-            print(f'Processed {i} rows')
+    # Vectorized generation of December 31 dates for all rows
+    df_grouped['December31Dates'] = generate_december_31_dates_vectorized(
+        df_grouped[('Date', 'min')],
+        df_grouped[('Date', 'max')]
+    )   
+    # Remove rows with empty lists before exploding
+    df_grouped = df_grouped[df_grouped['December31Dates'].apply(len) > 0]
+    df_grouped.columns = ['_'.join(col).strip() if isinstance(col, tuple) else col for col in df_grouped.columns]
+    df_expanded = df_grouped.explode('December31Dates_')
+    df_expanded = df_expanded.dropna(subset=['December31Dates_'])
+    df_expanded['Experience'] = (df_expanded.groupby(['CVR_', 'EntityID_','RelationType_', 'row_identifier_']).cumcount())
 
-        # if i == 1000:
-        #     break
+
+    # df_expanded = pd.DataFrame(columns=['Date','CVR', 'EntityID', 'RelationType','Experience'])
+    # i = 0
+    
+    
+    # # Iterate over each row in the dataframe
+    # for _, row in df_grouped.iterrows():
+    #     i += 1
+    #     # Generate the 31st December dates
+    #     dates = generate_december_31_dates(row[('Date', 'min')], row[('Date', 'max')])
+    #     date_count = len(dates)
+    #     # Create a new DataFrame for the expanded rows
+    #     expanded_df = pd.DataFrame({
+    #         'Date': dates,
+    #         'CVR': [row['CVR'].item()] * date_count,
+    #         'EntityID': [row['EntityID'].item()] * date_count,
+    #         'RelationType': [row['RelationType'].item()] * date_count,
+    #         'Experience' : list(range(date_count))
+    #     })
+    #     # Concatenate the expanded DataFrame to the main DataFrame
+    #     df_expanded = pd.concat([df_expanded, expanded_df], ignore_index=True)
+
+    #     if i % 10000 == 0:
+    #         print(f'Processed {i} rows')
+
+    #     # if i == 1000:
+    #     #     break
 
     #filter away all rows where the date is before the cutoff date
-    df_expanded = df_expanded.loc[df_expanded['Date'] >= pd.to_datetime('2013-01-01')]
+    df_expanded = df_expanded.loc[df_expanded['December31Dates_'] >= pd.to_datetime('2013-01-01')].rename(columns={'December31Dates_': 'FromDate', 'CVR_': 'CVR', 'EntityID_': 'EntityID', 'RelationType_': 'RelationType'})
+    df_expanded = df_expanded[['FromDate', 'CVR', 'RelationType', 'Experience']]
+    # rename
 
     return df_expanded
 

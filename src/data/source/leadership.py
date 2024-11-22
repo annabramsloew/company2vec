@@ -191,7 +191,7 @@ class LeadershipTokens(TokenSource):
         return ddf
     
 
-# Used for debugging
-# if __name__ == "__main__":
-#     report_tokens = LeadershipTokens()
-#     report_tokens.tokenized()
+#Used for debugging
+if __name__ == "__main__":
+    report_tokens = LeadershipTokens()
+    report_tokens.tokenized()

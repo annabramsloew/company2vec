@@ -123,7 +123,7 @@ class EmployeeTokens(TokenSource):
             df_employees['FromDate'] = pd.to_datetime(df_employees['FromDate'])
 
             # Filter away data before 2013
-            df_employees = df_employees.loc[df_employees['FromDate'] >= datetime(2013, 1, 1)]
+            df_employees = df_employees.loc[df_employees['FromDate'] >= pd.to_datetime(self.earliest_start)] #TODO: earliest_start
 
             # read chunk of registration data 
             df_registrations = pd.read_csv(self.input_csv  / f"Registrations/chunk{i}.csv", index_col=0)

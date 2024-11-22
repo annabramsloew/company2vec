@@ -178,7 +178,6 @@ class AnnualReportTokens(TokenSource):
 
 
 
-
         ddf_annualreport = dd.read_csv(
             financials_csv,
             usecols=columns_annualreport,
