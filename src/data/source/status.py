@@ -57,7 +57,7 @@ class StatusTokens(TokenSource):
                                                                 "UNDER TVANGSOPLØSNING" : "CSTAT_ONGOING_DISSOLUTION",
                                                                 "UNDER KONKURS" : "CSTAT_ONGOING_BANKRUPTCY",
                                                                 "UNDER REKONSTRUKTION" : "CSTAT_ONGOING_RECONSTRUCTION",
-                                                                "UNDER REASSUMERING" : "CSTAT_ONGOING_REASSUMPTION",
+                                                                "UNDER REASUMMERING" : "CSTAT_ONGOING_REASSUMPTION",
                                                                 "OPLØST EFTER ERKLÆRING" : "CSTAT_DISSOLVED_DECLARATION",
                                                                 "OPLØST EFTER GRÆNSEOVERSKRIDENDE FUSION" : "CSTAT_DISSOLVED_MERGER",
                                                                 "OPLØST EFTER SPALTNING" : "CSTAT_DISSOLVED_MERGER",
@@ -73,7 +73,7 @@ class StatusTokens(TokenSource):
             )
             .pipe(sort_partitions, columns=["FROM_DATE"])[["FROM_DATE", *self.field_labels()]]
         )
-
+        result = result.fillna({'COMPANY_STATUS': '[UNK]'})
         assert isinstance(result, dd.DataFrame)
         return result
 
@@ -130,8 +130,8 @@ class StatusTokens(TokenSource):
         df_registrations = df_registrations.loc[df_registrations['ChangeType'] == 'Status']
         df_registrations = df_registrations[['CVR', 'FromDate', 'NewValue']].rename(columns={'FromDate':'FROM_DATE', 'NewValue': 'COMPANY_STATUS'})
         
-        # format company status
-        df_registrations['COMPANY_STATUS'] = df_registrations['COMPANY_STATUS'].str.upper()
+        # format company status, trim any excess whitespace, and convert to uppercase
+        df_registrations['COMPANY_STATUS'] = df_registrations['COMPANY_STATUS'].str.upper().str.strip()
         df_registrations = df_registrations.fillna({'COMPANY_STATUS': '[UNK]'})
 
         # convert back to dask dataframe

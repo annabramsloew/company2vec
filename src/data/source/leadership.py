@@ -177,11 +177,7 @@ class LeadershipTokens(TokenSource):
         # Summarize leadership for every CVR per year (per Dec 31st)
         # List active ParticipantTypes and their corresponding experience in each position (computed as their current service time)
         df_leadership = active_participants_per_year(ddf_leadership)
-
-        # Rename columns
-        ddf = (df_leadership
-            .rename(columns=dict(zip(df_leadership.columns, output_columns)))
-        )
+        ddf = dd.from_pandas(df_leadership, npartitions=10)
 
         if self.downsample:
             ddf = self.downsample_persons(ddf)
@@ -191,7 +187,7 @@ class LeadershipTokens(TokenSource):
         return ddf
     
 
-#Used for debugging
-if __name__ == "__main__":
-    report_tokens = LeadershipTokens()
-    report_tokens.tokenized()
+# #Used for debugging
+# if __name__ == "__main__":
+#     report_tokens = LeadershipTokens()
+#     report_tokens.tokenized()
