@@ -7,10 +7,10 @@ defaults:
   
 #GENERAL
 version: 0.0
-implementation: "test_v1"
-comments: "testing"
-name: "pre_training_v1"
-model_name: "test_v1"
+implementation: "test_8"
+comments: "updated_global_set"
+name: "pre_training_v8"
+model_name: "test_v8"
 
 seed: 2024
 
@@ -25,7 +25,7 @@ model:
   _target_: src.transformer.models.TransformerEncoder
   _convert_: all
   hparams:
-    vocab_size: 692 #this one you should knwo in advance (fix later)
+    vocab_size: 690 #this one you should knwo in advance (fix later)
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}
     hidden_size: 280
