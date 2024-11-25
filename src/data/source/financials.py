@@ -33,7 +33,10 @@ class AnnualReportTokens(TokenSource):
             Binned("PROFIT_LOSS", prefix="PROFIT_LOSS", n_bins=100),
             Binned("EQUITY", prefix="EQUITY", n_bins=100),
             Binned("ASSETS", prefix="ASSETS", n_bins=100),
-            Binned("LIABILITIES", prefix="LIABILITIES", n_bins=100)
+            Binned("LIABILITIES", prefix="LIABILITIES", n_bins=100),
+            Binned("SHORT_TERM_LIABILITIES", prefix="SHORT_TERM_LIABILITIES", n_bins=100),
+            Binned("CASH_AND_CASH_EQUIVALENTS", prefix="CASH_AND_CASH_EQUIVALENTS", n_bins=100),
+            Binned("CURRENT_ASSETS", prefix="CURRENT_ASSETS", n_bins=100),
         ]
     )
 
@@ -130,7 +133,10 @@ class AnnualReportTokens(TokenSource):
             "ProfitLoss",
             "Equity", 
             "Assets", 
-            "LiabilitiesOtherThanProvisions"
+            "LiabilitiesOtherThanProvisions",
+            "ShorttermLiabilitiesOtherThanProvisions",
+            "CashAndCashEquivalents",
+            "CurrentAssets"
         ]
 
         columns_currency = ["year", "month", "from_currency", "rate"]
@@ -142,6 +148,9 @@ class AnnualReportTokens(TokenSource):
             "ASSETS",
             "EQUITY",
             "LIABILITIES",
+            "SHORT_TERM_LIABILITIES",
+            "CASH_AND_CASH_EQUIVALENTS",
+            "CURRENT_ASSETS",
             "INDUSTRY",
             "COMPANY_TYPE",
             "MUNICIPALITY",
@@ -191,6 +200,9 @@ class AnnualReportTokens(TokenSource):
                 "Equity": float,
                 "Assets": float,
                 "LiabilitiesOtherThanProvisions": float,
+                "ShorttermLiabilitiesOtherThanProvisions": float,
+                "CashAndCashEquivalents": float,
+                "CurrentAssets": float
             },
             blocksize="256MB"
         ).compute()
@@ -239,7 +251,7 @@ class AnnualReportTokens(TokenSource):
         
         # convert currency
         ddf = convert_currency(ddf, ddf_currency, 
-                        amount_cols=['ProfitLoss', 'Equity', 'Assets', 'LiabilitiesOtherThanProvisions'], 
+                        amount_cols=['ProfitLoss', 'Equity', 'Assets', 'LiabilitiesOtherThanProvisions', 'ShorttermLiabilitiesOtherThanProvisions', 'CashAndCashEquivalents', 'CurrentAssets'], 
                         currency_col='Currency', 
                         date_col='PublicationDate')
 
@@ -251,6 +263,9 @@ class AnnualReportTokens(TokenSource):
             "Assets":"ASSETS",
             "Equity":"EQUITY",
             "LiabilitiesOtherThanProvisions":"LIABILITIES",
+            "ShorttermLiabilitiesOtherThanProvisions":"SHORT_TERM_LIABILITIES",
+            "CashAndCashEquivalents": "CASH_AND_CASH_EQUIVALENTS",
+            'CurrentAssets': 'CURRENT_ASSETS',
             "Industry":"INDUSTRY",
             "CompanyType":"COMPANY_TYPE",
             "Municipality":"MUNICIPALITY",
