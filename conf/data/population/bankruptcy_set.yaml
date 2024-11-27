@@ -1,0 +1,9 @@
+defaults:
+  - /data/sources
+
+_target_: src.data.populations.bankruptcy.BankruptcySubPopulation
+
+name: bankruptcy
+
+period_start: 01-01-2022
+period_end: 31-12-2023

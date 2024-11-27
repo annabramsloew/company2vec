@@ -1,21 +1,21 @@
 # @package _global_
 
 ###################################
-#### Classification with life2vec model 
-#### (EOS - Death Predictions)
+#### Classification with company2vec model 
+#### bankruptcy prediction
 
 defaults:
-  - /datamodule: survival_set # NB: CHANGE TO BANKRUPTCY SET
+  - /datamodule: bankruptcy_set
   - /trainer: bankrupty
   - /callbacks
   
 #GENERAL
-version: 4.02
-implementation: "v15"
-comments: "m0del v1.1"
-name: "eos"
-model_name: "l2v"
-seed: 2021
+version: 1.0
+implementation: "v1"
+comments: "m0del v1.0"
+name: "bankruptcy"
+model_name: "c2v"
+seed: 2024
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
 pretrained_model_path: "../weights/v15/mlm/pre_training/1_33.pth" # NB: CHANGE TO THE PATH OF THE PRETRAINED MODEL

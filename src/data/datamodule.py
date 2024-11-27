@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 from ..tasks.base import Task, collate_encoded_documents
 from ..tasks.mlm import MLM
-# from .sampler import FixedSampler
+from .sampler import FixedSampler
 from .dataset import DocumentDataset, ShardedDocumentDataset
 from .decorators import save_parquet, save_pickle
 from .ops import concat_columns_dask, concat_sorted
@@ -477,8 +477,105 @@ class C2VDataModule(pl.LightningDataModule):
         return self.get_dataloader(self.test, shuffle=False)
 
 
+class CLSDataModule(C2VDataModule):
 
+    def get_train_weights(self) -> torch.Tensor:
+        ids = self.corpus.population.data_split().train
+        population = self.corpus.population.population()
+        targets = population.loc[ids]["TARGET_UK"].values
 
+        class_weights = 1. / np.array([len(np.where(targets == t)[0]) for t in np.unique(targets)])
+        class_weights = [i/sum(class_weights) for i in class_weights]
+        return torch.tensor([class_weights[t] for t in targets]).reshape(-1)
+
+    def get_ordered_indexes(self, split: str) -> torch.LongTensor:
+        if split == "val":
+            ids = self.corpus.population.data_split().val
+        elif split == "test": 
+            ids = self.corpus.population.data_split().test
+        else:
+            raise ValueError()
+
+        population = self.corpus.population.population()
+        targets = population.loc[ids]["TARGET_UK"].values
+        pos_idx = np.where(targets == 1)[0]
+        neg_idx = np.where(targets == 0)[0]
+        np.random.seed(0)
+        np.random.shuffle(neg_idx)
+        return torch.LongTensor(np.hstack([pos_idx, neg_idx]))
+
+    def get_fixed_dataloader(self, dataset):
+        indices = self.__ordered_subset_indexes__(dataset=dataset)
+        sampler = FixedSampler(indices = indices)
+        return DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            sampler = sampler,
+            shuffle = False,
+            persistent_workers=self.persistent_workers
+        )   
+
+    def get_weighted_dataloader(self, dataset, weights, replacement: bool) -> DataLoader:
+        """Weighted Random Sampling (mostly to upsample the minority class)"""
+        sampler = WeightedRandomSampler(
+            weights=weights, 
+            num_samples = weights.shape[0],
+            replacement = replacement,
+            generator = torch.Generator())
+
+        return DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            collate_fn=collate_encoded_documents,
+            sampler=sampler, 
+            pin_memory=self.pin_memory,
+            persistent_workers=self.persistent_workers,
+        )
+
+    def get_fixed_dataloader(self, dataset, indices) -> DataLoader:
+        sampler = FixedSampler(indices = indices)
+        return DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
+            collate_fn=collate_encoded_documents,
+            sampler = sampler,
+            shuffle = False,
+            persistent_workers=self.persistent_workers
+        )   
+
+    def get_dataloader(self, dataset: Dataset, shuffle: bool = True) -> DataLoader:
+        """Instantiaties and return a dataloader for the given dataset using the
+        parameters of the module"""
+        return DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=shuffle,
+            collate_fn=collate_encoded_documents,
+            generator=torch.Generator(),
+            pin_memory=self.pin_memory,
+            persistent_workers=self.persistent_workers,
+        )
+
+    def train_dataloader(self) -> DataLoader:
+        """Returns the training dataloader"""
+        sample_weights = self.get_train_weights()
+        return self.get_weighted_dataloader(self.train, weights=sample_weights, replacement=True)
+
+    def val_dataloader(self) -> DataLoader:
+        """Returns the validation dataloader"""
+        indices = self.get_ordered_indexes(split = "val")
+        return self.get_fixed_dataloader(self.val, indices)
+
+    def test_dataloader(self) -> DataLoader:
+        """Returns the test dataloader"""
+        indices = self.get_ordered_indexes(split = "test")
+        return self.get_fixed_dataloader(self.test, indices)
 
 
 
