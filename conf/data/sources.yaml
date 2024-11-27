@@ -18,6 +18,12 @@ financials:
   name: "financials"
   downsample: False
 
+# Financials  
+financials_no_shortterm:
+  _target_: src.data.source.financials_no_shortterm.AnnualReportTokens
+  name: "financials_no_shortterm"
+  downsample: False
+
 # Leadership  
 leadership:
   _target_: src.data.source.leadership.LeadershipTokens

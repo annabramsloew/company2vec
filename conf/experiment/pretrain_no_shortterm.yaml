@@ -1,16 +1,16 @@
 # @package _global_
 
 defaults:
-  - /datamodule: global_set
+  - /datamodule: global_set_no_shortterm
   - /trainer: pretrain
   - /callbacks
   
 #GENERAL
 version: 0.0
 implementation: "pre-hyperparameter-tuning"
-comments: "with_shortterm_liabilities"
+comments: "no_shortterm_liabilities"
 name: "pre_training"
-model_name: "model_with_shortterm_liabilities"
+model_name: "model_with_no_shortterm_liabilities"
 
 seed: 2024
 
@@ -25,7 +25,7 @@ model:
   _target_: src.transformer.models.TransformerEncoder
   _convert_: all
   hparams:
-    vocab_size: 989 #this one you should knwo in advance (fix later)
+    vocab_size: 892 #this one you should knwo in advance (fix later)
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}
     hidden_size: 280

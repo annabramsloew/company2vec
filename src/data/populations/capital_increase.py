@@ -96,7 +96,7 @@ class BankruptcySubPopulation(Population):
         Return pandas with [CVR, TARGET_UK, TARGET_UT] where (UK = under konkurs, UT = under tvangsopløsning)
         """
         
-        bankruptcy_status = ['UNDER KONKURS', 'TVANGSOPLØST']
+        bankruptcy_status = ['UNDER KONKURS', 'UNDER TVANGSOPLØSNING']
         target_columns = ["TARGET_UK", "TARGET_UT"]
 
         # load the target data
@@ -137,11 +137,10 @@ class BankruptcySubPopulation(Population):
             target[target_columns[i]] = 1
             result = result.join(target.set_index('CVR')[target_columns[i]], how='left')
         result = result.fillna(0)
-        
-        # target is one if either of the two columns are 1
-        result['TARGET'] = result[target_columns].max(axis=1)
-        cat_type = pd.api.types.CategoricalDtype(categories=[0,1], ordered=False)
-        result['TARGET'] = result['TARGET'].astype(cat_type)
+
+        for col in target_columns:
+            cat_type = pd.api.types.CategoricalDtype(categories=[0,1], ordered=False)
+            result[col] = result[col].astype(cat_type)
 
         assert result.shape[0] == population_ids.shape[0]
         assert isinstance(result, pd.DataFrame)

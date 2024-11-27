@@ -111,21 +111,11 @@ class CLS(Task):
         return sep_pos
 
 @dataclass
-class KONKURS(CLS):
-    # TASK
+class BANKRUPTCY(CLS):
+    # in theory we could just use the CLS(Task) above.
     def get_document(self, company_sentences: pd.DataFrame) -> CompanyDocument:
         document = super(CLS, self).get_document(company_sentences)
-        col = 'TARGET_UK'
-        target = float(company_sentences[col].iloc[0])
-        document.task_info = cast(JSONSerializable, target)  # makes mypy happy
-        return document
-
-@dataclass
-class TVANGSOPLOESNING(CLS):
-    # TASK
-    def get_document(self, company_sentences: pd.DataFrame) -> CompanyDocument:
-        document = super(CLS, self).get_document(company_sentences)
-        col = 'TARGET_UT'
+        col = 'TARGET'
         target = float(company_sentences[col].iloc[0])
         document.task_info = cast(JSONSerializable, target)  # makes mypy happy
         return document
