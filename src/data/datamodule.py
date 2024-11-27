@@ -482,7 +482,7 @@ class CLSDataModule(C2VDataModule):
     def get_train_weights(self) -> torch.Tensor:
         ids = self.corpus.population.data_split().train
         population = self.corpus.population.population()
-        targets = population.loc[ids]["TARGET_UK"].values
+        targets = population.loc[ids]["TARGET"].values
 
         class_weights = 1. / np.array([len(np.where(targets == t)[0]) for t in np.unique(targets)])
         class_weights = [i/sum(class_weights) for i in class_weights]
@@ -497,7 +497,7 @@ class CLSDataModule(C2VDataModule):
             raise ValueError()
 
         population = self.corpus.population.population()
-        targets = population.loc[ids]["TARGET_UK"].values
+        targets = population.loc[ids]["TARGET"].values
         pos_idx = np.where(targets == 1)[0]
         neg_idx = np.where(targets == 0)[0]
         np.random.seed(0)
