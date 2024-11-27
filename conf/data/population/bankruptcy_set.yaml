@@ -5,5 +5,10 @@ _target_: src.data.populations.bankruptcy.BankruptcySubPopulation
 
 name: bankruptcy
 
+base_population:  
+  _target_: src.data.populations.from_annualreports.FromAnnualReports
+  name: global_set
+  token_data: ${data.sources.financials}
+
 period_start: 01-01-2022
 period_end: 31-12-2023

@@ -6,7 +6,7 @@ from typing import List, TypeVar, cast
 import numpy as np
 import pandas as pd
 
-from src.data.types import Background, JSONSerializable, PersonDocument, EncodedDocument
+from src.data.types import Background, JSONSerializable, CompanyDocument, EncodedDocument
 from src.tasks.base import Task
 
 T = TypeVar("T")
@@ -27,14 +27,14 @@ class CLS(Task):
             raise NotImplementedError("Pooled version is not implemented")
 
     # CLS Specific params
-    def get_document(self, person_sentences: pd.DataFrame) -> PersonDocument:
-        document = super().get_document(person_sentences)
-        target = int(person_sentences.TARGET.iloc[0])
+    def get_document(self, company_sentences: pd.DataFrame) -> CompanyDocument:
+        document = super().get_document(company_sentences)
+        target = int(company_sentences.TARGET.iloc[0])
         document.task_info = cast(JSONSerializable, target)  # makes mypy happy
 
         return document
 
-    def encode_document(self, document: PersonDocument) -> "CLSEncodedDocument":
+    def encode_document(self, document: CompanyDocument) -> "CLSEncodedDocument":
 
         prefix_sentence = (
             ["[CLS]"] + Background.get_sentence(document.background) + ["[SEP]"]
@@ -113,20 +113,20 @@ class CLS(Task):
 @dataclass
 class KONKURS(CLS):
     # TASK
-    def get_document(self, person_sentences: pd.DataFrame) -> PersonDocument:
-        document = super(CLS, self).get_document(person_sentences)
+    def get_document(self, company_sentences: pd.DataFrame) -> CompanyDocument:
+        document = super(CLS, self).get_document(company_sentences)
         col = 'TARGET_UK'
-        target = float(person_sentences[col].iloc[0])
+        target = float(company_sentences[col].iloc[0])
         document.task_info = cast(JSONSerializable, target)  # makes mypy happy
         return document
 
 @dataclass
 class TVANGSOPLOESNING(CLS):
     # TASK
-    def get_document(self, person_sentences: pd.DataFrame) -> PersonDocument:
-        document = super(CLS, self).get_document(person_sentences)
+    def get_document(self, company_sentences: pd.DataFrame) -> CompanyDocument:
+        document = super(CLS, self).get_document(company_sentences)
         col = 'TARGET_UT'
-        target = float(person_sentences[col].iloc[0])
+        target = float(company_sentences[col].iloc[0])
         document.task_info = cast(JSONSerializable, target)  # makes mypy happy
         return document
 
