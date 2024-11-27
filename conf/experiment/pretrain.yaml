@@ -7,10 +7,10 @@ defaults:
   
 #GENERAL
 version: 0.0
-implementation: "test_v9"
-comments: "with_extra_financials"
-name: "pre_training_v9"
-model_name: "test_v9"
+implementation: "pre-hyperparameter-tuning"
+comments: "with_shortterm_liabilities"
+name: "pre_training"
+model_name: "model_with_shortterm_liabilities"
 
 seed: 2024
 
