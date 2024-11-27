@@ -77,7 +77,7 @@ class CLS(Task):
 
         target = np.array(document.task_info).astype(np.float32)
 
-        sequence_id = np.array(document.person_id)
+        sequence_id = np.array(document.cvr)
 
         if self.pooled:
             sep_pos = self.extract_sep_positions(token_ids)
