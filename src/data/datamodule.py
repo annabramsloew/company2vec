@@ -240,7 +240,7 @@ class Corpus:
 
         for field in fields_to_fit:
 
-            if source.name == 'ownership' and field.field_label == "EMPLOYEE_COUNT":
+            if source.name in ['ownership', 'capital_changes'] and field.field_label == "EMPLOYEE_COUNT":
                 read_path = DATA_ROOT / "binning" / "nbins100_EMPLOYEE_COUNT.pkl"
                 print("Using pre-fitted bins for EMPLOYEE_COUNT from file", read_path)
                 with open(read_path, "rb") as f:

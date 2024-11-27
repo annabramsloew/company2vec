@@ -1,0 +1,13 @@
+defaults:
+  - /data/corpus@corpus: global_set_no_shortterm
+  - /data/vocabulary@vocabulary: global_set_no_shortterm
+  - /task@task: mlm
+
+_target_: src.data.datamodule.C2VDataModule
+
+batch_size: 8
+num_workers: 0
+
+### If you want to train the model on subsets of data
+subset: False
+subset_id: 0 #max 2

@@ -1,0 +1,6 @@
+defaults:
+  - /data/corpus@corpus: global_set
+
+_target_: src.data.vocabulary.CorpusVocabulary
+
+name: ${.corpus.name}

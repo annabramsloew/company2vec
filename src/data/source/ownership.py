@@ -30,7 +30,8 @@ class OwnershipTokens(TokenSource):
             "OWNER_TYPE", #internal or externals
             "SHARE", 
             "INDUSTRY",
-            Binned("EMPLOYEE_COUNT", prefix="EMPLOYEES", n_bins=100) #TODO: THis bin should be the same as the one in the employee source
+            Binned("EMPLOYEE_COUNT", prefix="EMPLOYEES", n_bins=100), #TODO: THis bin should be the same as the one in the employee source
+            Binned("ASSETS", prefix="ASSETS", n_bins=100) 
         ]
     )
 
@@ -100,8 +101,9 @@ class OwnershipTokens(TokenSource):
             ]
         
         columns_registrations = ["CVR", "FromDate", "ChangeType", "NewValue"]
-        
         columns_employee = ['CVR', 'FromDate', 'EmployeeCounts']
+        columns_financials = ['CVR', 'PublicationDate', 'Assets']
+
 
         output_columns = [
             "FROM_DATE",
@@ -109,19 +111,22 @@ class OwnershipTokens(TokenSource):
             "SHARE",
             "TYPE",
             "INDUSTRY",
-            "EMPLOYEE_COUNT"
+            "EMPLOYEE_COUNT",
+            "ASSETS"
             ]
 
         # Update the path to the data
         path_owners = self.input_csv / "Participants"
         path_registrations = self.input_csv / "Registrations"
         path_employee = self.input_csv / "EmployeeCounts"
+        path_financials = self.input_csv / "Financials"
         path_cvr = self.input_csv / "CVRFiltered"
 
         # Load files
         owners_csv = [file for file in path_owners.iterdir() if file.is_file() and file.suffix == '.csv']
         registrations_csv = [file for file in path_registrations.iterdir() if file.is_file() and file.suffix == '.csv']
         employee_csv = [file for file in path_employee.iterdir() if file.is_file() and file.suffix == '.csv']
+        financials_csv = [file for file in path_financials.iterdir() if file.is_file() and file.suffix == '.csv']
         cvr_csv = [file for file in path_cvr.iterdir() if file.is_file() and file.suffix == '.csv']
 
         # Load data
@@ -169,6 +174,19 @@ class OwnershipTokens(TokenSource):
             blocksize="256MB",
         ).compute()
 
+        ddf_financials = dd.read_csv(
+            financials_csv,
+            usecols=columns_financials,
+            on_bad_lines="error",
+            assume_missing=True,
+            dtype={
+                "CVR": int,
+                "PublicationDate": str,
+                "Assets": float
+            },
+            blocksize="256MB",
+        ).compute()
+
         df_cvr = dd.read_csv(
             cvr_csv,
             usecols=['CVR'],
@@ -195,12 +213,14 @@ class OwnershipTokens(TokenSource):
         ddf_owners = ddf_owners[ddf_owners['CVR'].isin(cvr_list)]
         ddf_registrations = ddf_registrations[ddf_registrations['CVR'].isin(cvr_list)]
         ddf_employee = ddf_employee[ddf_employee['CVR'].isin(cvr_list)]
+        ddf_financials = ddf_financials[ddf_financials['CVR'].isin(cvr_list)]
         del df_cvr
 
         #filter away employee data with dates before the earliest start date
         ddf_employee['FromDate'] = dd.to_datetime(ddf_employee['FromDate'], errors='coerce')
         ddf_employee = ddf_employee.loc[lambda x: x.FromDate >= self.earliest_start].rename(columns={'FromDate': 'Date'})
 
+        ddf_financials['PublicationDate'] = dd.to_datetime(ddf_financials['PublicationDate'], errors='coerce')
         #compute owner type "internal" - rename EntityID to JoinID
         ddf_owners_internal = (ddf_owners
             .assign(OwnerType = 'INTERNAL')
@@ -218,6 +238,7 @@ class OwnershipTokens(TokenSource):
         #rename CVR column in Registrations and Employees to CVR_right for the asof merge
         ddf_registrations = ddf_registrations.rename(columns={'CVR': 'CVR_right'})
         ddf_employee = ddf_employee.rename(columns={'CVR': 'CVR_right'})
+        ddf_financials = ddf_financials.rename(columns={'CVR': 'CVR_right'})
 
         # enrich owners with asof values from the registrations - industry
         ddf_owners_internal = enrich_with_asof_values_v2(
@@ -248,6 +269,8 @@ class OwnershipTokens(TokenSource):
         ddf_owners_external = ddf_owners_external.sort_values('Date')
         ddf_employee = ddf_employee.set_index('Date', drop=False).reset_index(drop=True)
         ddf_employee = ddf_employee.sort_values('Date')
+        ddf_financials = ddf_financials.rename(columns={'PublicationDate':'Date'}).set_index('Date', drop=False).reset_index(drop=True)
+        ddf_financials = ddf_financials.sort_values('Date')
 
         # merge employee data with owners data with asof merge
         ddf_owners_internal = dd.merge_asof(
@@ -257,7 +280,7 @@ class OwnershipTokens(TokenSource):
             left_by='JoinID',
             right_by='CVR_right',
             direction='backward'
-        ).drop(columns=['JoinID','CVR_right'])
+        ).drop(columns=['CVR_right'])
 
         ddf_owners_external = dd.merge_asof(
             ddf_owners_external,
@@ -266,8 +289,26 @@ class OwnershipTokens(TokenSource):
             left_by= 'JoinID',
             right_by='CVR_right',
             direction='backward'
-        ).drop(columns=['JoinID', 'CVR_right'])
+        ).drop(columns=['CVR_right'])
         del ddf_employee
+
+        ddf_owners_internal = dd.merge_asof(
+            ddf_owners_internal,
+            ddf_financials,
+            on='Date',
+            left_by='JoinID',
+            right_by='CVR_right',
+            direction='backward'
+        ).drop(columns=['JoinID','CVR_right'])
+
+        ddf_owners_external = dd.merge_asof(
+            ddf_owners_external,
+            ddf_financials,
+            on='Date',
+            left_by= 'JoinID',
+            right_by='CVR_right',
+            direction='backward'
+        ).drop(columns=['JoinID', 'CVR_right'])
 
         #concatenate the internal and external owners
         ddf_owners = dd.concat([dd.from_pandas(ddf_owners_internal, npartitions=1), dd.from_pandas(ddf_owners_external, npartitions=1)])
@@ -278,7 +319,8 @@ class OwnershipTokens(TokenSource):
             "Industry":"INDUSTRY",
             "OwnerType":"OWNER_TYPE",
             "EmployeeCounts":"EMPLOYEE_COUNT",
-            "EquityPct":"SHARE"
+            "EquityPct":"SHARE",
+            "Assets":"ASSETS"
         }
 
         # Rename columns

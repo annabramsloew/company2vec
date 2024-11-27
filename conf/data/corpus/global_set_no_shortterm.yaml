@@ -1,0 +1,17 @@
+defaults:
+  - /data/sources
+  - /data/population@population: global_set
+
+_target_: src.data.datamodule.Corpus
+
+name: global_set_no_shortterm
+
+sources:
+  - ${data.sources.capital}
+  - ${data.sources.punits}
+  - ${data.sources.financials_no_shortterm}
+  - ${data.sources.employees}
+  - ${data.sources.leadership}
+  - ${data.sources.ownership}
+  - ${data.sources.status}
+  
