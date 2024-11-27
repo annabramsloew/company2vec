@@ -6,7 +6,7 @@
 
 defaults:
   - /datamodule: bankruptcy_set
-  - /trainer: bankrupty
+  - /trainer: bankruptcy
   - /callbacks
   
 #GENERAL
@@ -18,13 +18,14 @@ model_name: "c2v"
 seed: 2024
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
-pretrained_model_path: "../weights/v15/mlm/pre_training/1_33.pth" # NB: CHANGE TO THE PATH OF THE PRETRAINED MODEL
+pretrained_model_path: "/master_thesis/checkpoints/test_v9/pre_training_v9/0.0/0.0-epoch=29.ckpt"
+
 asym_penalty: 0.5
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
 callbacks.checkpoint.dirpath: ${ckpt_path}
 
 ###########################
-###################### MODEL
+###################### MODEL 
 model:
   _target_: src.transformer.cls_model.Transformer_CLS
   _convert_: all
