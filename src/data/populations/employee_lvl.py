@@ -18,24 +18,20 @@ from .from_annualreports import FromAnnualReports, AnnualReportTokens
 dateparser = lambda x: pd.to_datetime(x, format = '%d%b%Y:%X',  errors='coerce')
 
 @dataclass
-class BankruptcySubPopulation(Population):
+class EmployeeSubPopulation(Population):
     base_population: Population
-    name: str = "bankruptcy"
-    earliest_birthday: str = "01-01-1951" #TODO: Decide whether we want to filter on company age?
-    latest_birthday: str = "31-12-1981"
+    name: str = "employee_lvk"
     status_filters: list = field(default_factory=lambda: ['NORMAL', 'AKTIV'])
-    employee_filters: list = field(default_factory=list) # [min, max]
+    employee_filters: list = field(default_factory=lambda: [2, 1000000]) # [min, max] number of employees - max set to 1 million to avoid upper bound
     industry_filters: list = field(default_factory=list) # list of allowed industry codes of 4 digits
     company_type_filters: list = field(default_factory=lambda: ['A/S', 'APS', 'IVS']) # list of allowed company types
     financials_filters: dict = field(default_factory=dict) # {'financialskey1': [min, max], 'financialskey2': [min, max], ...} flexible number of keys
 
-    target_path: Path =  DATA_ROOT / "Tables" / "Registrations"
+    target_path: Path =  DATA_ROOT / "Tables" / "EmployeeCounts"
     period_start: str = "01-01-2022"
     period_end: str = "31-12-2023"
     
     def __post_init__(self) -> None:
-        self._earliest_birthday = pd.to_datetime(self.earliest_birthday, format="%d-%m-%Y")
-        self._latest_birthday = pd.to_datetime(self.latest_birthday, format="%d-%m-%Y")
         self._period_start = pd.to_datetime(self.period_start, format="%d-%m-%Y")
         self._period_end = pd.to_datetime(self.period_end, format="%d-%m-%Y")
         self._industry_filters = [str(x) for x in self.industry_filters]
@@ -92,54 +88,70 @@ class BankruptcySubPopulation(Population):
     )
     def target(self) -> pd.DataFrame:
         """
-        Looks up bankruptcy status from Registrations table in the specified period. 
+        Looks up employee counts from the EmployeeCounts table, computes difference 
         Return pandas with [CVR, TARGET_UK, TARGET_UT] where (UK = under konkurs, UT = under tvangsopløsning)
         """
         
-        bankruptcy_status = ['UNDER KONKURS', 'UNDER TVANGSOPLØSNING']
-        target_columns = ["TARGET_UK", "TARGET_UT"]
+        employee_status = ['DECREASE', 'STABLE', 'INCREASE']
+        target_columns = ["TARGET"]
 
         # load the target data
         target_csv = [file for file in self.target_path.iterdir() if file.is_file() and file.suffix == '.csv']
         df_target = dd.read_csv(
             target_csv,
-            usecols=["CVR", "FromDate", "ChangeType", "NewValue"],
+            usecols=["CVR", "FromDate", "ChangeType", "EmployeeCounts"],
             on_bad_lines="error",
             assume_missing=True,
             dtype={
                 "CVR": int,
                 "FromDate": str,
                 "ChangeType": str,
-                "NewValue": str
+                "EmployeeCounts": float
             },
             blocksize="256MB"
         ).compute()
 
-        # filter on the bankruptcy status
-        df_target = df_target.loc[lambda x: x.ChangeType == 'Status']
-        df_target = df_target.loc[df_target.NewValue.isin(bankruptcy_status)]
 
-        # filter on the period of interest
+        # filter on the period of interest in addition to finding previous year data
         df_target['FromDate'] = pd.to_datetime(df_target['FromDate'], errors='coerce')
+        df_target['Year'] = df_target['FromDate'].dt.year
         df_target = df_target.dropna(subset=['FromDate'])
+        df_previous = df_target.loc[(df_target.FromDate < self._period_start) & (df_target.FromDate >= self._period_start - pd.DateOffset(years=1))]
         df_target = df_target.loc[(df_target.FromDate >= self._period_start) & (df_target.FromDate <= self._period_end)]
 
         # filter on relevant CVRs
         population_ids = self.sub_population().index.to_numpy()
         df_target = df_target.loc[df_target.CVR.isin(population_ids)]
-        df_target = df_target.drop_duplicates(subset=['CVR', 'NewValue'])
+        df_previous = df_previous.loc[df_previous.CVR.isin(population_ids)]
+
+        #group by CVR and year and find last employee count
+        df_previous = df_previous.sort_values(by=['CVR', 'FromDate'])
+        df_previous = df_previous.drop_duplicates(subset=['CVR'], keep='last')
+        df_target = df_target.sort_values(by=['CVR', 'FromDate'])
+        df_target = df_target.drop_duplicates(subset=['CVR'], keep = 'last')
+
+        # compute target column for df_target with three categories [DECREASE, STABLE, INCREASE]
+        # if no previous year data, set to STABLE, if difference is more than 10% set to DECREASE/INCREASE else STABLE
+        df_previous = df_previous.rename(columns={'EmployeeCounts': 'PreviousEmployeeCounts'})
+        df_target = df_target.merge(df_previous[['CVR', 'PreviousEmployeeCounts']], on=['CVR'], how='left')
+        df_target['EmployeeDiff'] = (df_target['EmployeeCounts'] - df_target['PreviousEmployeeCounts']) / df_target['PreviousEmployeeCounts']
+        df_target['TARGET'] = pd.cut(df_target['EmployeeDiff'], bins=[-np.inf, -0.1, 0.1, np.inf], labels=employee_status)
+        
+        map_target = {
+            'STABLE': 0,
+            'INCREASE': 1,
+            'DECREASE': 2
+        }
+        df_target['TARGET'] = df_target['TARGET'].map(map_target)
         
         # left join the relevant values on to the population
         result = pd.DataFrame(index=population_ids)
 
-        for i, status in enumerate(bankruptcy_status):
-            target = df_target.loc[df_target.NewValue == status]
-            target[target_columns[i]] = 1
-            result = result.join(target.set_index('CVR')[target_columns[i]], how='left')
+        result = result.join(df_target.set_index('CVR')[target_columns], how='left')
         result = result.fillna(0)
 
         for col in target_columns:
-            cat_type = pd.api.types.CategoricalDtype(categories=[0,1], ordered=False)
+            cat_type = pd.api.types.CategoricalDtype(categories=[0,1,2], ordered=False)
             result[col] = result[col].astype(cat_type)
 
         assert result.shape[0] == population_ids.shape[0]
@@ -315,5 +327,6 @@ class BankruptcySubPopulation(Population):
 
 if __name__ == "__main__":
     global_population = FromAnnualReports(AnnualReportTokens())
-    pop = BankruptcySubPopulation(global_population)
+    pop = EmployeeSubPopulation(global_population)
+    #pop.target()
     pop.prepare()

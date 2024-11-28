@@ -1,0 +1,16 @@
+defaults:
+  - /data/sources
+  - /data/population@population: employee_set
+
+_target_: src.data.datamodule.Corpus
+
+name: employee_set
+
+sources:
+  - ${data.sources.capital}
+  - ${data.sources.punits}
+  - ${data.sources.financials}
+  - ${data.sources.employees}
+  - ${data.sources.leadership}
+  - ${data.sources.ownership}
+  - ${data.sources.status}
