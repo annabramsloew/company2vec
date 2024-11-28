@@ -18,24 +18,20 @@ from .from_annualreports import FromAnnualReports, AnnualReportTokens
 dateparser = lambda x: pd.to_datetime(x, format = '%d%b%Y:%X',  errors='coerce')
 
 @dataclass
-class BankruptcySubPopulation(Population):
+class CapitalSubPopulation(Population):
     base_population: Population
-    name: str = "bankruptcy"
-    earliest_birthday: str = "01-01-1951" #TODO: Decide whether we want to filter on company age?
-    latest_birthday: str = "31-12-1981"
+    name: str = "capital_increase"
     status_filters: list = field(default_factory=lambda: ['NORMAL', 'AKTIV'])
     employee_filters: list = field(default_factory=list) # [min, max]
     industry_filters: list = field(default_factory=list) # list of allowed industry codes of 4 digits
     company_type_filters: list = field(default_factory=lambda: ['A/S', 'APS', 'IVS']) # list of allowed company types
     financials_filters: dict = field(default_factory=dict) # {'financialskey1': [min, max], 'financialskey2': [min, max], ...} flexible number of keys
 
-    target_path: Path =  DATA_ROOT / "Tables" / "Registrations"
+    target_path: Path =  DATA_ROOT / "Tables" / "CapitalChanges"
     period_start: str = "01-01-2022"
     period_end: str = "31-12-2023"
     
     def __post_init__(self) -> None:
-        self._earliest_birthday = pd.to_datetime(self.earliest_birthday, format="%d-%m-%Y")
-        self._latest_birthday = pd.to_datetime(self.latest_birthday, format="%d-%m-%Y")
         self._period_start = pd.to_datetime(self.period_start, format="%d-%m-%Y")
         self._period_end = pd.to_datetime(self.period_end, format="%d-%m-%Y")
         self._industry_filters = [str(x) for x in self.industry_filters]
@@ -92,50 +88,50 @@ class BankruptcySubPopulation(Population):
     )
     def target(self) -> pd.DataFrame:
         """
-        Looks up bankruptcy status from Registrations table in the specified period. 
-        Return pandas with [CVR, TARGET_UK, TARGET_UT] where (UK = under konkurs, UT = under tvangsopløsning)
+        Looks up capital increases from CapitalChanges table in the specified period. 
+        Return pandas with [CVR, TARGET] where TARGET is 1 if the company has a capital increase in the period, 0 otherwise.
         """
         
-        bankruptcy_status = ['UNDER KONKURS', 'UNDER TVANGSOPLØSNING']
-        target_columns = ["TARGET_UK", "TARGET_UT"]
+        target_columns = ["TARGET"]
 
         # load the target data
         target_csv = [file for file in self.target_path.iterdir() if file.is_file() and file.suffix == '.csv']
         df_target = dd.read_csv(
             target_csv,
-            usecols=["CVR", "FromDate", "ChangeType", "NewValue"],
+            usecols=["CVR", "Date", "InvestmentDKK", "Rate", "PaymentType", "InvestmentType"],
             on_bad_lines="error",
             assume_missing=True,
             dtype={
                 "CVR": int,
-                "FromDate": str,
-                "ChangeType": str,
-                "NewValue": str
+                "Date": str,
+                "InvestmentDKK": float,
+                "Rate": float,
+                "PaymentType": str,
+                "InvestmentType": str
             },
-            blocksize="256MB"
+            blocksize="256MB",
+            lineterminator='\n'
         ).compute()
 
-        # filter on the bankruptcy status
-        df_target = df_target.loc[lambda x: x.ChangeType == 'Status']
-        df_target = df_target.loc[df_target.NewValue.isin(bankruptcy_status)]
+        # filter on InvestmentType
+        df_target = df_target.loc[df_target.InvestmentType == 'Kapitalforhøjelse']
 
         # filter on the period of interest
-        df_target['FromDate'] = pd.to_datetime(df_target['FromDate'], errors='coerce')
-        df_target = df_target.dropna(subset=['FromDate'])
-        df_target = df_target.loc[(df_target.FromDate >= self._period_start) & (df_target.FromDate <= self._period_end)]
+        df_target['Date'] = pd.to_datetime(df_target['Date'], errors='coerce')
+        df_target = df_target.dropna(subset=['Date'])
+        df_target = df_target.loc[(df_target.Date >= self._period_start) & (df_target.Date <= self._period_end)]
 
         # filter on relevant CVRs
         population_ids = self.sub_population().index.to_numpy()
         df_target = df_target.loc[df_target.CVR.isin(population_ids)]
-        df_target = df_target.drop_duplicates(subset=['CVR', 'NewValue'])
+        df_target = df_target.drop_duplicates(subset=['CVR'])
         
         # left join the relevant values on to the population
         result = pd.DataFrame(index=population_ids)
 
-        for i, status in enumerate(bankruptcy_status):
-            target = df_target.loc[df_target.NewValue == status]
-            target[target_columns[i]] = 1
-            result = result.join(target.set_index('CVR')[target_columns[i]], how='left')
+        
+        df_target[target_columns] = 1
+        result = result.join(df_target.set_index('CVR')[target_columns], how='left')
         result = result.fillna(0)
 
         for col in target_columns:
@@ -315,5 +311,6 @@ class BankruptcySubPopulation(Population):
 
 if __name__ == "__main__":
     global_population = FromAnnualReports(AnnualReportTokens())
-    pop = BankruptcySubPopulation(global_population)
+    pop = CapitalSubPopulation(global_population)
+    #pop.target()
     pop.prepare()

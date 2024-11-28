@@ -2,23 +2,23 @@
 
 ###################################
 #### Classification with company2vec model 
-#### bankruptcy prediction
+#### capital increase prediction
 
 defaults:
-  - /datamodule: bankruptcy_set
-  - /trainer: bankruptcy
+  - /datamodule: capital_set
+  - /trainer: capital
   - /callbacks
   
 #GENERAL
 version: 1.0
-implementation: "finetune_bankruptcy"
-comments: "without short-term liabilities"
+implementation: "v1"
+comments: "m0del v1.0"
 name: "bankruptcy"
 model_name: "c2v"
 seed: 2024
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
-pretrained_model_path: "/master_thesis/checkpoints/pre-hyperparameter-tuning/pre_training/0.0/0.0-epoch=29.ckpt"
+pretrained_model_path: "/master_thesis/checkpoints/test_v9/pre_training_v9/0.0/0.0-epoch=29.ckpt"
 
 asym_penalty: 0.5
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
