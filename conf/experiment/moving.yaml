@@ -2,18 +2,18 @@
 
 ###################################
 #### Classification with company2vec model 
-#### capital increase prediction
+#### moving prediction
 
 defaults:
-  - /datamodule: capital_set
-  - /trainer: capital
+  - /datamodule: moving_set
+  - /trainer: moving
   - /callbacks
   
 #GENERAL
 version: 1.0
 implementation: "v1"
 comments: "m0del v1.0"
-name: "capital"
+name: "moving"
 model_name: "c2v"
 seed: 2024
 
@@ -72,7 +72,7 @@ model:
     freeze_embeddings: True
     freeze_positions: False
     num_targets: 2
-    loss_type: "asymmetric"
+    loss_type: "asymmetric" #do we need to change this?
     pos_weight: 0.5
     asym_penalty: ${asym_penalty}
     asym_alpha: 0.025

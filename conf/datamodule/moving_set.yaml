@@ -1,9 +1,9 @@
 defaults:
-  - /data/corpus@corpus: employee_set
+  - /data/corpus@corpus: moving_set
   - /data/vocabulary@vocabulary: global_set
   - /task@task: cls
 
-_target_: src.data.datamodule.MultiCLSDataModule
+_target_: src.data.datamodule.CLSDataModule
 
 batch_size: 8
 num_workers: 2
