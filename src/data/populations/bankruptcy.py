@@ -47,13 +47,12 @@ class BankruptcySubPopulation(Population):
     def population(self) -> pd.DataFrame:
         """Loads the joined sub_population and target dataframe 
            Inherits columns from TARGET:
-            * EVENT_FINAL_DATE: date of the event (if event does not happen, it is set to the :attr:`period_end`)
             * TARGET: outcome feature (1 - event happend, 0 otherwise)
         """
         population = self.sub_population()
         target = self.target()
         assert population.shape[0] == target.shape[0]
-
+        print(target.columns)
         result = population.join(target)
         assert isinstance(result, pd.DataFrame)
         return result
@@ -142,6 +141,7 @@ class BankruptcySubPopulation(Population):
         result['TARGET'] = result[target_columns].max(axis=1)
         cat_type = pd.api.types.CategoricalDtype(categories=[0,1], ordered=False)
         result['TARGET'] = result['TARGET'].astype(cat_type)
+        result = result.drop(columns=target_columns)
 
         assert result.shape[0] == population_ids.shape[0]
         assert isinstance(result, pd.DataFrame)

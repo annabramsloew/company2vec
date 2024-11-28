@@ -5,8 +5,8 @@ defaults:
 # Values for the different experiments
 seed: 2024
 version: "0.0"
-implementation: "v8"
-name: "test_v8"
+implementation: "placeholder"
+name: "placeholder"
 
 local_path: "master_thesis" #"Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec"
 user_path: "/zhome/49/1/147319/" #"/Users/nikolaibeckjensen/"

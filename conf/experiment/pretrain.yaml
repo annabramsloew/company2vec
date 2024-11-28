@@ -6,13 +6,13 @@ defaults:
   - /callbacks
   
 #GENERAL
-version: 0.0
-implementation: "pre-hyperparameter-tuning"
+version: 1.0
+implementation: "pre-hyperparameter-tuning-shortterm"
 comments: "with_shortterm_liabilities"
-name: "pre_training"
+name: "pre_training_with_shortterm"
 model_name: "model_with_shortterm_liabilities"
 
-seed: 2024
+seed: 2023
 
 stage: "pre_training" # pre_training, finetuning, prediction, hyp_tune
 ckpt_path: ${last_ckpt:${callbacks.checkpoint.dirpath}} ##a bit weird implementation - fix later

@@ -9,7 +9,7 @@ name: bankruptcy_set
 sources:
   - ${data.sources.capital}
   - ${data.sources.punits}
-  - ${data.sources.financials}
+  - ${data.sources.financials_no_shortterm}
   - ${data.sources.employees}
   - ${data.sources.leadership}
   - ${data.sources.ownership}
