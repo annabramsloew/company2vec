@@ -88,7 +88,7 @@ model:
 
 trainer:
   accelerator: 'gpu'
-  devices: [6]
+  devices: [0]
   callbacks:
     - ${callbacks.checkpoint_cls}
     - ${callbacks.lr_monitor}
