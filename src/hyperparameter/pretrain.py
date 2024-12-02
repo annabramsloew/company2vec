@@ -1,0 +1,129 @@
+import numpy as np
+from skopt import Optimizer
+from skopt.learning import GaussianProcessRegressor
+from skopt.learning.gaussian_process.kernels import Matern
+from skopt.space import Real, Integer
+import pandas as pd
+import glob 
+import pickle
+import os
+
+N_TO_ASK = 4
+N_TO_EVALUATE = 25
+
+def adjust_value(val:int,  d: int = 8, min_val: int = 0) -> int:
+        remainder = val % d
+        if val - remainder < min_val:
+                val = val + d
+                remainder = val % d
+                return val - remainder
+        return val - remainder
+
+def dump_results(optimizer, dir_path="../", name="results2.pkl"):
+        if not(os.path.exists(dir_path)):
+                os.mkdir(dir_path)
+        with open(dir_path + name, "wb") as f:
+                results = {"Xi": optimizer.Xi, 
+                           "yi": optimizer.yi,
+                           "optimizer": optimizer}
+                pickle.dump(results, f)
+
+def adjust_ask(asked, keys):
+        config = {}
+        for i in range(len(asked)):
+                config[keys[i]] = asked[i]
+        config["hidden_size"] = adjust_value(config["hidden_size"], config["n_heads"], min_val=64)
+
+        config["n_local"] = np.floor(config["n_heads"] * config["n_local"])
+        if config["n_local"] == 0:
+            config["local_window"] = 0
+
+        
+        return config
+
+def adjust_tell(config):
+        """Convert n_local back to the ratio"""
+        config["n_local"] /= config["n_heads"]
+        return [v for k,v in config.items()]
+
+
+params = [[280, 5, 10, 7/10, 2210,  436, 38]]
+        # batch1
+        #   [180, 4, 6, 0/6, 1174, 446, 0],
+        #   [72, 5, 12, 0/12, 1285, 110, 0],
+        #   [270, 8, 10, 5/10, 570, 200, 108],
+        #   [128, 14, 8, 7/8, 1454, 75, 130]]
+        # batch2
+        #   [286, 8, 11, 0.0, 1409, 103, 0],
+        #   [192, 7, 12, 2.0, 1117, 283, 10],
+        #   [324, 10, 4, 1.0, 1997, 429, 141],
+        #   [252, 13, 3, 0.0, 2427, 185, 0]
+        # ]
+        # batch3
+        #
+        #
+        #
+        #
+        # batch4
+
+
+scores = [2.214] 
+# batch1: 3.105, 3.185, 2.635, 2.980]
+space_keys = ["hidden_size", "n_encoders", "n_heads", "n_local", "hidden_ff", "n_rand_features", "local_window"]
+
+search_space = [Integer(64, 336, name="hidden_size"),  
+                Integer(4,14, name="n_encoders"),
+                Integer(3,14, name="n_heads"), 
+                Real(0.0, 1.0, name="n_local"), 
+                Integer(512,2560, name="hidden_ff"), 
+                Integer(64,512, name="n_rand_features"),
+                Integer(0,256, name="local_window"),
+                ]               
+
+
+
+optimizer = Optimizer(dimensions = search_space,
+                      base_estimator="GP",
+                      acq_func="PI",
+                      acq_optimizer="lbfgs",
+                      n_initial_points = 12,
+                      random_state = 2021)
+
+for i in range(len(scores)):
+        optimizer.tell(params[i], scores[i])
+
+
+
+print("Points evaluated:", len(optimizer.Xi))
+query = optimizer.ask(n_points=N_TO_ASK)
+query_adjusted = []
+
+for i, q in enumerate(query):
+        query_adjusted.append(adjust_ask(q, keys=space_keys))
+        print("\t", query_adjusted[-1])
+
+while len(optimizer.Xi) <= N_TO_EVALUATE:
+
+        if len(query_adjusted) == 0:
+                query = optimizer.ask(n_points=N_TO_ASK)
+                for i, q in enumerate(query):
+                        query_adjusted.append(adjust_ask(q, keys=space_keys))
+                        print("\t", query_adjusted[-1])
+
+        current_querry = query_adjusted.pop(0)
+        try:
+                metrics = float(input("Loss for the %s: " %current_querry ))
+        except:
+                print("Wrong Format. Skipping the query...")
+                continue
+
+
+        print("\tMetric: %.3f" %metrics)
+        optimizer.tell(adjust_tell(current_querry), metrics)
+        print("Points evaluated:", len(optimizer.Xi))
+        dump_results(optimizer)
+
+
+i_best = np.argmin(optimizer.yi)
+print("Best metric: %.3f" %optimizer.yi[i_best])
+print("\t", optimizer.Xi[i_best])
