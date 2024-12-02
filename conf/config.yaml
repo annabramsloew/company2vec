@@ -9,7 +9,7 @@ implementation: "placeholder"
 name: "placeholder"
 
 local_path: "master_thesis" #"Library/CloudStorage/OneDrive-DanmarksTekniskeUniversitet/Virk2Vec"
-user_path: "/zhome/49/1/147319/" #"/Users/nikolaibeckjensen/"
+user_path: "/zhome/d5/c/146512/" #"/Users/nikolaibeckjensen/"
 
 # checkpoint
-ckpt_path: /zhome/49/1/147319/master_thesis/checkpoints
+ckpt_path: /zhome/d5/c/146512/master_thesis/checkpoints

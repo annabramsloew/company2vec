@@ -1,7 +1,7 @@
 defaults:
   - /data/sources
 
-_target_: src.data.populations.bankruptcy.MovingSubPopulation
+_target_: src.data.populations.moving.MovingSubPopulation
 
 name: moving
 

@@ -1,7 +1,7 @@
 defaults:
   - /data/sources
 
-_target_: src.data.populations.bankruptcy.EmployeeSubPopulation
+_target_: src.data.populations.employee_lvl.EmployeeSubPopulation
 
 name: employee_level
 

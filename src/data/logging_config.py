@@ -9,6 +9,8 @@ elif Path.home().name == "annabramslow":
     LOG_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet(2)" / "Virk2Vec" / "data" / "logging"
 elif Path.home().name == "147319":
     LOG_ROOT = Path.home() / "master_thesis" / "data" / "logging"
+elif Path.home().name == "146512":
+    LOG_ROOT = Path.home() / "master_thesis" / "data" / "logging"
 else: 
     LOG_ROOT = Path.home() / "data"
 
@@ -18,6 +20,8 @@ if Path.home().name == "nikolaibeckjensen":
 elif Path.home().name == "annabramslow":
     DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet(2)" / "Virk2Vec" / "data"
 elif Path.home().name == "147319":
+    DATA_ROOT = Path.home() / "master_thesis" / "data"
+elif Path.home().name == "146512":
     DATA_ROOT = Path.home() / "master_thesis" / "data"
 else: 
     DATA_ROOT = Path.home() / "data"
