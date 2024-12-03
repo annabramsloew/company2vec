@@ -40,12 +40,8 @@ class Background:
         unknown background.
         """
 
-        if x is None:
-            return 1 * ["[UNK]"]
-        else:
-            return [
-                'DK'
-            ]
+
+        return ["[UNK]"]
 
 
 class EncodedDocument(Generic[_TaskT]):

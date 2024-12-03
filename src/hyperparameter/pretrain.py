@@ -47,28 +47,36 @@ def adjust_tell(config):
         return [v for k,v in config.items()]
 
 
-params = [[280, 5, 10, 7/10, 2210,  436, 38]]
-        # batch1
-        #   [180, 4, 6, 0/6, 1174, 446, 0],
-        #   [72, 5, 12, 0/12, 1285, 110, 0],
-        #   [270, 8, 10, 5/10, 570, 200, 108],
-        #   [128, 14, 8, 7/8, 1454, 75, 130]]
-        # batch2
-        #   [286, 8, 11, 0.0, 1409, 103, 0],
-        #   [192, 7, 12, 2.0, 1117, 283, 10],
-        #   [324, 10, 4, 1.0, 1997, 429, 141],
-        #   [252, 13, 3, 0.0, 2427, 185, 0]
-        # ]
-        # batch3
-        #
-        #
-        #
-        #
-        # batch4
+params = [280, 5, 10, 7/10, 2210,  436, 38]
+batch1 = [[180, 4, 6, 0/6, 1174, 446, 0],
+        [72, 5, 12, 0/12, 1285, 110, 0],
+        [270, 8, 10, 5/10, 570, 200, 108],
+        [128, 14, 8, 7/8, 1454, 75, 130]]
 
+batch2 = [[286, 8, 11, 0/11, 1409, 103, 0],
+          [192, 7, 12, 2/12, 1117, 283, 10],
+          [324, 10, 4, 1/4, 1997, 429, 141],
+          [252, 13, 3, 0/3, 2427, 185, 0]]
 
-scores = [2.214] 
-# batch1: 3.105, 3.185, 2.635, 2.980]
+batch3 = [
+    [182, 14, 7, 1/7, 1986, 381, 23],
+    [112, 14, 7, 1/7, 2560, 512, 73]
+]
+
+batch4 = [
+    [192, 4, 12, 9.0, 1886, 462, 10],
+    [189, 6, 7, 1.0, 2117, 298, 9]
+]
+
+scores = [2.214]
+batch1_scores = [3.105, 3.185, 2.635, 2.980]
+batch2_scores = [3.064, 2.166, 2.952, 3.088]
+batch3_scores = [2.687, 3.016]
+batch4_scores = []
+
+scores = scores + batch1_scores + batch2_scores + batch3_scores
+params = [params] + batch1 + batch2 + batch3
+print(scores)
 space_keys = ["hidden_size", "n_encoders", "n_heads", "n_local", "hidden_ff", "n_rand_features", "local_window"]
 
 search_space = [Integer(64, 336, name="hidden_size"),  
@@ -86,7 +94,7 @@ optimizer = Optimizer(dimensions = search_space,
                       base_estimator="GP",
                       acq_func="PI",
                       acq_optimizer="lbfgs",
-                      n_initial_points = 12,
+                      n_initial_points = 8,
                       random_state = 2021)
 
 for i in range(len(scores)):

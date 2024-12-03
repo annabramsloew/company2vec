@@ -100,7 +100,7 @@ class CorpusVocabulary(Vocabulary):
         ]
     )
     background_tokens: List[str] = field(
-        default_factory=lambda: ["F", "M", "DK", "NON_DK"]
+        default_factory=lambda: []
     )
     year_range: Tuple[int, int] = (1946, 1991)  # inclusive
     min_token_count: int = 1000

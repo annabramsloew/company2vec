@@ -180,8 +180,8 @@ class Task:
         except StopIteration:
             timecut_pos = len(after_threshold)
 
-        #TODO - This is a temporary solution. We need to define the background sentence of a company
-        origin = 'DK'
+        #TODO - Currently no background sentence for a given company
+        origin = '[UNK]'
 
         background = Background(
             origin=origin

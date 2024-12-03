@@ -240,13 +240,33 @@ class Corpus:
 
         for field in fields_to_fit:
 
-            if source.name in ['ownership', 'capital_changes'] and field.field_label == "EMPLOYEE_COUNT":
-                read_path = DATA_ROOT / "binning" / "nbins100_EMPLOYEE_COUNT.pkl"
-                print("Using pre-fitted bins for EMPLOYEE_COUNT from file", read_path)
-                with open(read_path, "rb") as f:
-                    field.bins_ = pickle.load(f)
-            else:
+            # use pre-fitted bins on the company2vec training data if possible
+            global_set_path = DATA_ROOT / "processed" / "corpus" / "global_set"
+            if not global_set_path.exists():
                 field.fit(tokenized)
+
+            else:
+                if field.field_label in ['ASSETS', 'CASH_AND_CASH_EQUIVALENTS', 'CURRENT_ASSETS', 'EMPLOYEE_COUNT', 'EQUITY', 'LIABILITIES', 'PROFIT_LOSS', 'SHORT_TERM_LIABILITIES']:
+                    read_path = DATA_ROOT / "binning" / f"nbins100_{field.field_label}.pkl"
+                    print(f"Using pre-fitted bins for {field.field_label} from file", read_path)
+                    with open(read_path, "rb") as f:
+                        field.bins_ = pickle.load(f)
+                        
+                elif field.field_label in ['INVESTMENT', 'RATE']:
+                    read_path = DATA_ROOT / "binning" / f"nbins10_{field.field_label}.pkl"
+                    print(f"Using pre-fitted bins for {field.field_label} from file", read_path)
+                    with open(read_path, "rb") as f:
+                        field.bins_ = pickle.load(f)
+
+                elif field.field_label in ['EXPERIENCE']:
+                    read_path = DATA_ROOT / "binning" / f"nbins20_{field.field_label}.pkl"
+                    print(f"Using pre-fitted bins for {field.field_label} from file", read_path)
+                    with open(read_path, "rb") as f:
+                        field.bins_ = pickle.load(f)
+
+                else:
+                    print("No pre-fitted bins for", field.field_label)
+                    field.fit(tokenized)
         return fields_to_fit
         
 
