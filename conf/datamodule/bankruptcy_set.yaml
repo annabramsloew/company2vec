@@ -1,6 +1,6 @@
 defaults:
   - /data/corpus@corpus: bankruptcy_set
-  - /data/vocabulary@vocabulary: global_set_no_shortterm
+  - /data/vocabulary@vocabulary: global_set
   - /task@task: cls_bankruptcy
 
 _target_: src.data.datamodule.CLSDataModule
