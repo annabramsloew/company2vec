@@ -31,7 +31,7 @@ model:
   _convert_: all
   hparams:
     seed: ${seed}
-    vocab_size: 2043 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
+    vocab_size: 993 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}    
     hidden_size: 256

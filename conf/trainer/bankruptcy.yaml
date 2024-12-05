@@ -2,7 +2,7 @@ _target_: pytorch_lightning.Trainer
 default_root_dir : ${local_path}/logs/
 fast_dev_run:  False
 min_epochs : 5
-max_epochs : 35
+max_epochs : 5
 track_grad_norm : 2
 precision: 32
 gradient_clip_val: 1

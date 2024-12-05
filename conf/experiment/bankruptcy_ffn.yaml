@@ -14,7 +14,7 @@ version: 0.1
 implementation: "v1"
 comments: "m0del v1.1"
 name: "bankruptcy"
-model_name: "tab_logreg"
+model_name: "tab_ffn"
 seed: 2023
 
 
@@ -38,7 +38,7 @@ model:
     dropout: 0.35
     batch_size: ${datamodule.batch_size}
 
-    encoder_type: 'logistic'
+    encoder_type: 'neural' #or 'logistic'
 
 
     #### CLS SPECIFIC
