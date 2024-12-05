@@ -31,7 +31,7 @@ model:
   _convert_: all
   hparams:
     seed: ${seed}
-    vocab_size: 2043 #this one you should knwo in advance (fix later)
+    vocab_size: 993 #this one you should knwo in advance (fix later)
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}
     hidden_size: 280
@@ -73,10 +73,10 @@ model:
     freeze_positions: False
     num_targets: 3 #NB changed to 3 (0,1,2)
     loss_type: "entropy" #NB changed to entropy from asymmetric
-    pos_weight: 0.5
-    asym_penalty: ${asym_penalty}
-    asym_alpha: 0.025
-    asym_beta: 1.0
+    #pos_weight: 0.5
+    #asym_penalty: ${asym_penalty}
+    #asym_alpha: 0.025
+    #asym_beta: 1.0
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}
