@@ -64,18 +64,33 @@ batch3 = [
 ]
 
 batch4 = [
-    [192, 4, 12, 9.0, 1886, 462, 10],
-    [189, 6, 7, 1.0, 2117, 298, 9]
+    [192, 4, 12, 9/12, 1886, 462, 10],
+    [189, 6, 7, 1/7, 2117, 298, 9]
+]
+
+batch5 =[
+        [209, 4, 11, 11/11, 1417, 512, 10],
+        [99, 5, 11, 2/11, 2248, 512, 10],
+        [120, 4, 10, 10/10, 2560, 512, 10],
+        [168, 4, 14, 0/14, 852, 512, 0]
+]
+
+batch6 = [
+    [192, 6, 12, 11.0, 1029, 209, 10],
+    [220, 13, 10, 10.0, 512, 141, 10],
+    [210, 5, 14, 14.0, 813, 152, 10],
+    [207, 8, 9, 9.0, 808, 169, 11]
 ]
 
 scores = [2.214]
 batch1_scores = [3.105, 3.185, 2.635, 2.980]
 batch2_scores = [3.064, 2.166, 2.952, 3.088]
 batch3_scores = [2.687, 3.016]
-batch4_scores = []
+batch4_scores = [2.144, 2.202]
+batch5_scores = [2.126, 2.409, 2.280, 3.185]
 
-scores = scores + batch1_scores + batch2_scores + batch3_scores
-params = [params] + batch1 + batch2 + batch3
+scores = scores + batch1_scores + batch2_scores + batch3_scores + batch4_scores + batch5_scores
+params = [params] + batch1 + batch2 + batch3 + batch4 + batch5
 print(scores)
 space_keys = ["hidden_size", "n_encoders", "n_heads", "n_local", "hidden_ff", "n_rand_features", "local_window"]
 

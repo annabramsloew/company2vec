@@ -18,9 +18,6 @@ import logging
 """Custom code"""
 from src.transformer.transformer_utils import *
 from src.transformer.transformer import  AttentionDecoder, CLS_Decoder_FT2, Transformer
-from src.transformer.metrics import  CorrectedBAcc, CorrectedF1, CorrectedMCC, AUL
-from coral_pytorch.losses import corn_loss
-from coral_pytorch.dataset import corn_label_from_logits
 from pathlib import Path
 import os
 
@@ -147,16 +144,19 @@ class Transformer_CLS(pl.LightningModule):
         self.train_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
         
         ##### VALIDATION
-        self.val_cr_bacc = CorrectedBAcc(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.val_cr_f1 = CorrectedF1(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.val_cr_mcc = CorrectedMCC(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.val_aul = AUL()
+        self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
+        self.val_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
+        self.val_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
+        self.val_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
+        self.val_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
 
         ##### TEST
-        self.test_cr_bacc = CorrectedBAcc(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.test_cr_f1 = CorrectedF1(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.test_cr_mcc = CorrectedMCC(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.test_aul = AUL()
+        self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
+        self.test_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
+        self.test_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
+        self.test_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
+        self.test_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
+
 
     def init_collector(self):
         """Collect predictions and targets"""
@@ -401,6 +401,7 @@ class Transformer_CLS(pl.LightningModule):
         if stage == "train":
             self.log("train/loss", loss, on_step=on_step, on_epoch = on_epoch)
             if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
+                raise ValueError("Not implemented")
                 self.log("train/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
                 self.log("train/pos_predictions", sum(scores[:,1]>0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
             else:
@@ -414,20 +415,24 @@ class Transformer_CLS(pl.LightningModule):
         elif stage == "val":
             self.log("val/loss", loss, on_step=on_step, on_epoch = on_epoch)
             if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-                self.log("val/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-                self.log("val/pos_predictions", sum(scores[:,1]>0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
-            else:
-                self.log("val/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
+                raise ValueError("Not implemented")
+            #     self.log("val/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
+            #     self.log("val/pos_predictions", sum(scores[:,1]>0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
+            # else:
+            #     self.log("val/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
             
-            self.val_cr_f1.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-            self.val_cr_bacc.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-            self.val_cr_mcc.update(scores[:,1], targets[:,1])  # this should not happen in self.log 
-            self.val_aul.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
+            self.val_f1.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
+            self.val_accuracy.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
+            self.val_precision.update(scores[:,1], targets[:,1])  # this should not happen in self.log 
+            self.val_recall.update(scores[:,1], targets[:,1]) # this should not happen in self.log
+            self.val_auc.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
+            
 
-            self.log("val/f1_corrected", self.val_cr_f1, on_step = False, on_epoch = True)
-            self.log("val/bacc_corrected", self.val_cr_bacc, on_step = False, on_epoch = True)
-            self.log("val/mcc_corrected", self.val_cr_mcc, on_step = False, on_epoch = True)
-            self.log("val/aul", self.val_aul, on_step = False, on_epoch = True)
+            self.log("val/f1", self.val_f1, on_step = False, on_epoch = True)
+            self.log("val/acc", self.val_accuracy, on_step = False, on_epoch = True)
+            self.log("val/precision", self.val_precision, on_step = False, on_epoch = True)
+            self.log("val/recall", self.val_recall, on_step = False, on_epoch = True)
+            self.log("val/auc", self.val_auc, on_step = False, on_epoch = True)
             self.val_trg.update(targets[:,1])
             self.val_prb.update(scores[:,1])
             self.val_id.update(sid)
@@ -435,24 +440,26 @@ class Transformer_CLS(pl.LightningModule):
         elif stage == "test":
             self.log("test/loss", loss, on_step=on_step, on_epoch = on_epoch)
             if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
+                raise ValueError("Not implemented")
                 self.log("test/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
                 self.log("test/pos_predictions", sum(scores[:,1]>0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
 
-            else:
-                self.log("test/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
-
-            self.test_cr_f1.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-            self.test_cr_bacc.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-            self.test_cr_mcc.update(scores[:,1], targets[:,1])  # this should not happen in self.log 
-            self.test_aul.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
+            # else:
+            #     self.log("test/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
+            self.test_f1.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
+            self.test_accuracy.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
+            self.test_precision.update(scores[:,1], targets[:,1])  # this should not happen in self.log 
+            self.test_recall.update(scores[:,1], targets[:,1]) # this should not happen in self.log
+            self.test_auc.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
+            
+            self.log("test/f1", self.test_f1, on_step = False, on_epoch = True)
+            self.log("test/acc", self.test_accuracy, on_step = False, on_epoch = True)
+            self.log("test/precision", self.test_precision, on_step = False, on_epoch = True)
+            self.log("test/recall", self.test_recall, on_step = False, on_epoch = True)
+            self.log("test/auc", self.test_auc, on_step = False, on_epoch = True)
             self.test_trg.update(targets[:,1])
             self.test_prb.update(scores[:,1])
             self.test_id.update(sid)
-
-            self.log("test/f1_corrected", self.test_cr_f1, on_step=False, on_epoch = True)
-            self.log("test/bacc_corrected", self.test_cr_bacc, on_step=False, on_epoch = True)
-            self.log("test/mcc_corrected", self.test_cr_mcc, on_step=False, on_epoch = True)
-            self.log("test/aul", self.test_aul, on_step = False, on_epoch = True)
     
 
     @staticmethod
