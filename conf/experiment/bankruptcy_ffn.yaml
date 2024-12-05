@@ -20,7 +20,7 @@ seed: 2023
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
 cls_num_targets: 2
-asym_penalty: 0.5
+num_targets: 2
 pooled: False #if the final representation is an averaged version of the sequence
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
 callbacks.checkpoint.dirpath: ${ckpt_path}
@@ -43,11 +43,13 @@ model:
 
     #### CLS SPECIFIC
     cls_num_targets: ${cls_num_targets}
-    loss_type: "asymmetric"
-    pos_weight: 0.5
-    asym_penalty: ${asym_penalty}
-    asym_alpha: 0.025
-    asym_beta: 1.0
+    num_targets: ${num_targets}
+    loss_type: "entropy"
+    average_type: "micro"
+    #pos_weight: 0.5
+    #asym_penalty: ${asym_penalty}
+    #asym_alpha: 0.025
+    #asym_beta: 1.0
 
     learning_rate: 1.7e-4
     weight_decay: 1.e-4
