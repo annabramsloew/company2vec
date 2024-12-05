@@ -22,26 +22,16 @@ log = logging.getLogger(__name__)
 @dataclass
 class TabularCLS(Task):
 
-    # def register(self, datamodule) -> None:
-    #     self.datamodule = datamodule
+    def register(self, datamodule) -> None:
+        self.datamodule = datamodule
   
-    #     vocab = self.datamodule.vocabulary.vocab()
-    #     vocab = vocab[~vocab.CATEGORY.isin(["GENERAL", "MONTH", "BACKGROUND", "YEAR"])]
-    #     vocab = vocab["TOKEN"].tolist()
-    #     log.info("Input size: %s" %(len(vocab) + 5))
-    #     self.vectorizer = CountVectorizer(vocabulary=vocab,  token_pattern=r"\S+", lowercase=False)
-    #     self.earliest_birthday = self.datamodule.corpus.population._earliest_birthday
-    #     self.latest_birthday = self.datamodule.corpus.population._latest_birthday
-    #     self.period_start = self.datamodule.corpus.population._period_start
-    #     self.period_end = self.datamodule.corpus.population._period_end
-
-    #     self.max_age = float((self.period_start - self.earliest_birthday).days // 365)
-    #     self.min_age = float((self.period_start - self.latest_birthday).days // 365)
-
-    # def minmax_norm(self, birth_year, birth_month):
-    #     age = (self.period_start - pd.to_datetime("1-%s-%s" %(birth_month, birth_year), dayfirst=True)).days // 365
-    #     return (float(age) - self.min_age) / (self.max_age-self.min_age)
-
+        vocab = self.datamodule.vocabulary.vocab()
+        vocab = vocab[~vocab.CATEGORY.isin(["GENERAL", "MONTH", "BACKGROUND", "YEAR"])]
+        vocab = vocab["TOKEN"].tolist()
+        log.info("Input size: %s" %(len(vocab) + 5))
+        self.vectorizer = CountVectorizer(vocabulary=vocab,  token_pattern=r"\S+", lowercase=False)
+        self.period_start = self.datamodule.corpus.population._period_start
+        self.period_end = self.datamodule.corpus.population._period_end
 
     # CLS Specific params
     def get_document(self, company_sentences: pd.DataFrame) -> CompanyDocument:
@@ -54,10 +44,6 @@ class TabularCLS(Task):
 
         origin_dk  = 1. if document.background.origin == "DK" else 0.
         origin_nd  =  1. - origin_dk
-        #sex_m = 1. if document.background.gender == "M" else 0.
-        #sex_f = 1. - sex_m
-        #age = self.minmax_norm(birth_month=document.background.birth_month, birth_year=document.background.birth_year)
-
         background = np.array([origin_dk, origin_nd], dtype=np.float32) #deleted , sex_m, sex_f, age from brackets
         sequence = " ".join(reduce(lambda xs, ys: xs + ys, document.sentences))
         data = self.vectorizer.transform([sequence]).toarray().flatten().astype(np.float32)
