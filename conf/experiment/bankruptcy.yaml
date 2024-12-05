@@ -72,11 +72,8 @@ model:
     freeze_embeddings: True
     freeze_positions: False
     num_targets: 2
-    loss_type: "asymmetric"
-    pos_weight: 0.5
-    asym_penalty: ${asym_penalty}
-    asym_alpha: 0.025
-    asym_beta: 1.0
+    loss_type: "entropy"
+    class_weights: [0.5, 0.5]
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}

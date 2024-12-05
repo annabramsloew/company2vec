@@ -72,18 +72,19 @@ class FFN(pl.LightningModule):
         self.train_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.cls_num_targets, average="macro")
         self.train_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.cls_num_targets, average="macro")
         
-        ##### VALIDATION
-        self.val_cr_bacc = CorrectedBAcc(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.val_cr_f1 = CorrectedF1(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.val_cr_mcc = CorrectedMCC(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.val_aul = AUL()
+         ##### VALIDATION
+        self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average=self.hparams.average_type)
 
         ##### TEST
-        self.test_cr_bacc = CorrectedBAcc(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.test_cr_f1 = CorrectedF1(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.test_cr_mcc = CorrectedMCC(alpha = self.hparams.asym_alpha, beta= self.hparams.asym_beta, threshold = 0.5, average="micro")
-        self.test_aul = AUL()
-
+        self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average=self.hparams.average_type)
 
     def transform_targets(self, targets):
         """Transform Tensor of targets based on the type of loss"""
@@ -94,7 +95,7 @@ class FFN(pl.LightningModule):
         else:
             raise NotImplemented
         return targets
-
+    
 
     def forward(self, batch):
         '''Forward pass'''
@@ -217,66 +218,74 @@ class FFN(pl.LightningModule):
         assert stage in ["train", "val", "test"]
         if self.hparams.encoder_type == "neural":
             scores = F.softmax(predictions, dim=1)
+            preds = scores
         else:
             predictions = torch.sigmoid(predictions)
-            scores = torch.zeros((predictions.size(0),2), dtype=predictions.dtype, device= predictions.device)
-            scores[:,0] += torch.ones(predictions.size(0), dtype=predictions.dtype, device= predictions.device)
-            scores[:,0] -= predictions.squeeze()
-            scores[:,1] += predictions.squeeze()
+            preds = predictions
+            # scores = torch.zeros((predictions.size(0),2), dtype=predictions.dtype, device= predictions.device)
+            # scores[:,0] += torch.ones(predictions.size(0), dtype=predictions.dtype, device= predictions.device)
+            # scores[:,0] -= predictions.squeeze()
+            # scores[:,1] += predictions.squeeze()
 
         if stage == "train":
             self.log("train/loss", loss, on_step=on_step, on_epoch = on_epoch)
-            if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-                self.log("train/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-                self.log("train/pos_predictions", sum(scores[:,0]<0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
-            else:
-                self.log("train/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
+            # if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
+            #     self.log("train/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
+            #     self.log("train/pos_predictions", sum(scores[:,0]<0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
+            # else:
+            #     self.log("train/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
 
-            self.log("train/accuracy", self.train_accuracy(scores, targets), on_step=on_step, on_epoch = on_epoch)
-            self.log("train/recall", self.train_recall(scores, targets), on_step=on_step, on_epoch = on_epoch)
-            self.log("train/precision", self.train_precision(scores, targets), on_step=on_step, on_epoch = on_epoch)
-            self.log("train/f1", self.train_f1(scores, targets), on_step=on_step, on_epoch = on_epoch)
+            self.log("train/accuracy", self.train_accuracy(preds, targets), on_step=on_step, on_epoch = on_epoch)
+            self.log("train/recall", self.train_recall(preds, targets), on_step=on_step, on_epoch = on_epoch)
+            self.log("train/precision", self.train_precision(preds, targets), on_step=on_step, on_epoch = on_epoch)
+            self.log("train/f1", self.train_f1(preds, targets), on_step=on_step, on_epoch = on_epoch)
 
         elif stage == "val":
             self.log("val/loss", loss, on_step=on_step, on_epoch = on_epoch)
-            if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-                self.log("val/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-                self.log("val/pos_predictions", sum(scores[:,0]<0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
-            else:
-                self.log("val/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
+            #if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
+            #     self.log("val/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
+            #     self.log("val/pos_predictions", sum(scores[:,0]<0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
+            # else:
+            #     self.log("val/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
             
-            self.val_cr_f1.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-            self.val_cr_bacc.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-            self.val_cr_mcc.update(scores[:,1], targets[:,1])  # this should not happen in self.log 
-            self.val_aul.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-
-            self.log("val/f1_corrected", self.val_cr_f1, on_step = False, on_epoch = True)
-            self.log("val/bacc_corrected", self.val_cr_bacc, on_step = False, on_epoch = True)
-            self.log("val/mcc_corrected", self.val_cr_mcc, on_step = False, on_epoch = True)
-            self.log("val/aul", self.val_aul, on_step = False, on_epoch = True)
+            self.val_f1.update(preds, targets) # this should not happen in self.log 
+            self.val_accuracy.update(preds, targets) # this should not happen in self.log 
+            self.val_precision.update(preds, targets)  # this should not happen in self.log 
+            self.val_recall.update(preds, targets) # this should not happen in self.log
+            self.val_auc.update(preds, targets) # this should not happen in self.log 
+            
+            self.log("val/f1", self.val_f1, on_step = False, on_epoch = True)
+            self.log("val/acc", self.val_accuracy, on_step = False, on_epoch = True)
+            self.log("val/precision", self.val_precision, on_step = False, on_epoch = True)
+            self.log("val/recall", self.val_recall, on_step = False, on_epoch = True)
+            self.log("val/auc", self.val_auc, on_step = False, on_epoch = True)
 
         elif stage == "test":
             self.log("test/loss", loss, on_step=on_step, on_epoch = on_epoch)
-            if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-                self.log("test/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-                self.log("test/pos_predictions", sum(scores[:,0]<0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
+            # if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
+            #     self.log("test/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
+            #     self.log("test/pos_predictions", sum(scores[:,0]<0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
 
-            else:
-                self.log("test/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
+            # else:
+            #     self.log("test/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
+            
+                       # else:
+            #     self.log("test/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
+            
+            self.test_f1.update(preds, targets) # this should not happen in self.log 
+            self.test_accuracy.update(preds, targets) # this should not happen in self.log 
+            self.test_precision.update(preds, targets)  # this should not happen in self.log 
+            self.test_recall.update(preds, targets) # this should not happen in self.log
+            self.test_auc.update(preds, targets) # this should not happen in self.log 
+            
+            self.log("test/f1", self.test_f1, on_step = False, on_epoch = True)
+            self.log("test/acc", self.test_accuracy, on_step = False, on_epoch = True)
+            self.log("test/precision", self.test_precision, on_step = False, on_epoch = True)
+            self.log("test/recall", self.test_recall, on_step = False, on_epoch = True)
+            self.log("test/auc", self.test_auc, on_step = False, on_epoch = True)
 
-            self.test_cr_f1.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-            self.test_cr_bacc.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-            self.test_cr_mcc.update(scores[:,1], targets[:,1])  # this should not happen in self.log 
-            self.test_aul.update(scores[:,1], targets[:,1]) # this should not happen in self.log 
-
-            self.test_trg.update(targets[:,1])
-            self.test_prb.update(scores[:,1])
-
-
-            self.log("test/f1_corrected", self.test_cr_f1, on_step=False, on_epoch = True)
-            self.log("test/bacc_corrected", self.test_cr_bacc, on_step=False, on_epoch = True)
-            self.log("test/mcc_corrected", self.test_cr_mcc, on_step=False, on_epoch = True)
-            self.log("test/aul", self.test_aul, on_step = False, on_epoch = True)
+            self.test_trg.update(targets)
+            self.test_prb.update(scores)
 
     def on_test_start(self, **kwargs):
         self.test_trg = torchmetrics.CatMetric()
