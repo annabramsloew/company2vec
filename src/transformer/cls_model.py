@@ -144,18 +144,18 @@ class Transformer_CLS(pl.LightningModule):
         self.train_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
         
         ##### VALIDATION
-        self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.val_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.val_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.val_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.val_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
+        self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
+        self.val_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
+        self.val_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
+        self.val_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
+        self.val_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="micro")
 
         ##### TEST
-        self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.test_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.test_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.test_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.test_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
+        self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
+        self.test_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
+        self.test_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
+        self.test_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
+        self.test_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="micro")
 
 
     def init_collector(self):
