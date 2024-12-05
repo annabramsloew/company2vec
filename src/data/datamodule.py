@@ -609,7 +609,7 @@ class MultiCLSDataModule(C2VDataModule):
         class_weights = [i/sum(class_weights) for i in class_weights]
         return torch.tensor([class_weights[t] for t in targets]).reshape(-1)
 
-    def get_ordered_indexes(self, split: str) -> torch.LongTensor:
+    def get_random_indexes(self, split: str) -> torch.LongTensor:
         if split == "val":
             ids = self.corpus.population.data_split().val
         elif split == "test": 
@@ -617,18 +617,9 @@ class MultiCLSDataModule(C2VDataModule):
         else:
             raise ValueError()
 
-        population = self.corpus.population.population()
-        targets = population.loc[ids]["TARGET"].values
-        #pos_idx = np.where(targets == 1)[0]
-        #neg_idx = np.where(targets == 0)[0]
-        #np.random.seed(0)
-        #np.random.shuffle(neg_idx)
-        class_indices = [np.where(targets == t)[0] for t in np.unique(targets)]
-        for idx in class_indices:
-            np.random.seed(0)
-            np.random.shuffle(idx)
-        #return torch.LongTensor(np.hstack([pos_idx, neg_idx]))
-        return torch.LongTensor(np.hstack(class_indices))
+        np.random.seed(0)
+        np.random.shuffle(ids)
+        return torch.LongTensor(ids)
 
     def get_fixed_dataloader(self, dataset):
         indices = self.__ordered_subset_indexes__(dataset=dataset)
@@ -695,12 +686,12 @@ class MultiCLSDataModule(C2VDataModule):
 
     def val_dataloader(self) -> DataLoader:
         """Returns the validation dataloader"""
-        indices = self.get_ordered_indexes(split = "val")
+        indices = self.get_random_indexes(split = "val")
         return self.get_fixed_dataloader(self.val, indices)
 
     def test_dataloader(self) -> DataLoader:
         """Returns the test dataloader"""
-        indices = self.get_ordered_indexes(split = "test")
+        indices = self.get_random_indexes(split = "test")
         return self.get_fixed_dataloader(self.test, indices)
 
 
