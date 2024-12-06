@@ -6,4 +6,4 @@ defaults:
 _target_: src.data.datamodule.MultiCLSDataModule
 
 batch_size: 8
-num_workers: 0
+num_workers: 2
