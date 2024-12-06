@@ -229,7 +229,6 @@ class Transformer_CLS(pl.LightningModule):
 
         ## 1. ENCODER-DECODER
         predicted = self(batch)
-        predicted = predicted
         ## 2. LOSS
         targets = self.transform_targets(batch["target"], seq = batch["input_ids"], stage="val")
         loss = self.loss(predicted, targets)
@@ -426,18 +425,19 @@ class Transformer_CLS(pl.LightningModule):
             # else:
             #     self.log("val/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
             
-            self.val_f1.update(preds, targets) # this should not happen in self.log 
-            self.val_accuracy.update(preds, targets) # this should not happen in self.log 
-            self.val_precision.update(preds, targets)  # this should not happen in self.log 
-            self.val_recall.update(preds, targets) # this should not happen in self.log
-            self.val_auc.update(preds, targets) # this should not happen in self.log 
-            
+            self.log("val/f1", self.val_f1.compute(), on_step=False, on_epoch=True)
+            self.log("val/acc", self.val_accuracy.compute(), on_step=False, on_epoch=True)
+            self.log("val/precision", self.val_precision.compute(), on_step=False, on_epoch=True)
+            self.log("val/recall", self.val_recall.compute(), on_step=False, on_epoch=True)
+            self.log("val/auc", self.val_auc.compute(), on_step=False, on_epoch=True)
 
-            self.log("val/f1", self.val_f1, on_step = False, on_epoch = True)
-            self.log("val/acc", self.val_accuracy, on_step = False, on_epoch = True)
-            self.log("val/precision", self.val_precision, on_step = False, on_epoch = True)
-            self.log("val/recall", self.val_recall, on_step = False, on_epoch = True)
-            self.log("val/auc", self.val_auc, on_step = False, on_epoch = True)
+            # Reset metrics
+            self.val_f1.reset()
+            self.val_accuracy.reset()
+            self.val_precision.reset()
+            self.val_recall.reset()
+            self.val_auc.reset()
+            
             self.val_trg.update(targets)
             self.val_prb.update(preds)
             self.val_id.update(sid)
@@ -462,6 +462,8 @@ class Transformer_CLS(pl.LightningModule):
             self.log("test/precision", self.test_precision, on_step = False, on_epoch = True)
             self.log("test/recall", self.test_recall, on_step = False, on_epoch = True)
             self.log("test/auc", self.test_auc, on_step = False, on_epoch = True)
+            
+            
             self.test_trg.update(targets)
             self.test_prb.update(preds)
             self.test_id.update(sid)
