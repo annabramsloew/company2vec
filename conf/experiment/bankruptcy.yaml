@@ -15,7 +15,7 @@ implementation: "finetune_bankruptcy"
 comments: ""
 name: "bankruptcy"
 model_name: "c2v"
-seed: 2024
+seed: 2023
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
 pretrained_model_path: "/master_thesis/checkpoints/pre-hyperparameter-tuning/pre_training/0.0/0.0-epoch=29.ckpt" #UPDATE
@@ -72,7 +72,8 @@ model:
     freeze_positions: False
     num_targets: 2
     loss_type: "entropy"
-    class_weights: [1/0.963, 1/0.037]
+    #class_weights: [1/0.963, 1/0.037]
+    class_weights: [1.0384, 27.0270]
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}

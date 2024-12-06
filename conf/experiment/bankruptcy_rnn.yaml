@@ -78,7 +78,8 @@ model:
     num_targets: 2
     loss_type: "entropy"
     average_type: 'micro'
-    #class_weights:
+    #class_weights: [1/0.963, 1/0.037]
+    class_weights: [1.0384, 27.0270]
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}
@@ -90,8 +91,8 @@ model:
 
 
 trainer:
-  accelerator: 'gpu' # 'cpu'
-  devices: [0] # 1
+  accelerator: 'gpu'
+  devices: [0]
   callbacks:
     - ${callbacks.checkpoint_cls}
     - ${callbacks.lr_monitor}
