@@ -34,9 +34,6 @@ model:
   hparams:
 
     input_size: 985 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
-    hidden_size: 646
-    n_layers: 3
-    dropout: 0.35
     batch_size: ${datamodule.batch_size}
 
     encoder_type: 'logistic'
