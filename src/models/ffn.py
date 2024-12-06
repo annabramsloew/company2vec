@@ -39,9 +39,11 @@ class FFN(pl.LightningModule):
             raise NotImplementedError("Deprecated: use asymmetric loss instead")
         elif self.hparams.loss_type == "entropy":
             if self.hparams.encoder_type == 'logistic':
-                self.loss = nn.BCELoss()
+                class_weights = torch.tensor(self.hparams.class_weights).to(self.device)
+                self.loss = nn.BCELoss(weight=class_weights)
             else:
-                self.loss = nn.CrossEntropyLoss()
+                class_weights = torch.tensor(self.hparams.class_weights).to(self.device)
+                self.loss = nn.CrossEntropyLoss(weight=class_weights)
         else:
             raise NotImplemented
 
