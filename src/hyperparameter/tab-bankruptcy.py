@@ -29,7 +29,7 @@ def dump_results(optimizer, dir_path="..scikit_pretraining/", name="results_rnn.
                 pickle.dump(results, f)
 
 
-params = [[FILL OUT],
+params = [[370, 1, 0.1571789665157697, 0.00039],
          ]
 scores = []
 

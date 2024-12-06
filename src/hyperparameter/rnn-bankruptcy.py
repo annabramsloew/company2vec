@@ -30,10 +30,8 @@ def dump_results(optimizer, dir_path="..scikit_pretraining/", name="results_rnn.
 
 
 params = [[370, 1, 0.1571789665157697, False],
-         [292, 7, 0.489655105489462, False],
-         [155, 7, 0.01807295602163467, False],
-         [137, 5, 0.38887399544619544, False],
-         [525, 5, 0.014200431808370221, False]]
+
+        ]
 scores = []
 
 search_space = [Integer(64, 768, name="hidden_size"),  
