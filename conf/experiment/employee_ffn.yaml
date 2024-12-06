@@ -11,7 +11,7 @@ defaults:
   
 #GENERAL
 version: 0.1
-implementation: "v1"
+implementation: "v1.0"
 comments: "m0del v1.1"
 name: "employee"
 model_name: "tab_ffn"
@@ -20,7 +20,8 @@ seed: 2023
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
 cls_num_targets: 3
-asym_penalty: 0.5
+num_targets: 3
+
 pooled: False #if the final representation is an averaged version of the sequence
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
 callbacks.checkpoint.dirpath: ${ckpt_path}
@@ -37,17 +38,17 @@ model:
     n_layers: 3
     dropout: 0.35
     batch_size: ${datamodule.batch_size}
+    
 
     encoder_type: 'neural'
 
 
     #### CLS SPECIFIC
     cls_num_targets: ${cls_num_targets}
+    num_targets: ${num_targets}
     loss_type: "entropy"
-    #pos_weight: 0.5
-    #asym_penalty: ${asym_penalty}
-    #asym_alpha: 0.025
-    #asym_beta: 1.0
+    average_type: "macro"
+    #class_weights:
 
     learning_rate: 1.7e-4
     weight_decay: 1.e-4
@@ -63,8 +64,8 @@ model:
     experiment_version: ${version} 
 
 trainer:
-  accelerator: 'gpu'
-  devices: [0]
+  accelerator: 'gpu' #'cpu'
+  devices: [0] #1
   callbacks:
   - ${callbacks.checkpoint_cls}
   - ${callbacks.lr_monitor}

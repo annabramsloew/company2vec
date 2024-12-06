@@ -18,9 +18,8 @@ model_name: "c2v"
 seed: 2024
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
-pretrained_model_path: "/master_thesis/checkpoints/test_v9/pre_training_v9/0.0/0.0-epoch=29.ckpt"
+pretrained_model_path: "/master_thesis/checkpoints/test_v9/pre_training_v9/0.0/0.0-epoch=29.ckpt" #UPDATE THIS
 
-asym_penalty: 0.5
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
 callbacks.checkpoint.dirpath: ${ckpt_path}
 
@@ -72,11 +71,9 @@ model:
     freeze_embeddings: True
     freeze_positions: False
     num_targets: 2
-    loss_type: "asymmetric" #do we need to change this?
-    pos_weight: 0.5
-    asym_penalty: ${asym_penalty}
-    asym_alpha: 0.025
-    asym_beta: 1.0
+    loss_type: "entropy"
+    average_type: 'micro'
+    #class_weights:
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}

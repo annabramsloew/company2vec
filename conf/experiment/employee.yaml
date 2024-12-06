@@ -11,7 +11,7 @@ defaults:
   
 #GENERAL
 version: 1.0
-implementation: "v1"
+implementation: "v1.0"
 comments: "m0del v1.0"
 name: "employee_lvl"
 model_name: "c2v"
@@ -20,7 +20,6 @@ seed: 2024
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
 pretrained_model_path: "/master_thesis/checkpoints/test_v9/pre_training_v9/0.0/0.0-epoch=29.ckpt"
 
-asym_penalty: 0.5
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
 callbacks.checkpoint.dirpath: ${ckpt_path}
 
@@ -71,12 +70,11 @@ model:
     #### CLS SPECIFIC
     freeze_embeddings: True
     freeze_positions: False
-    num_targets: 3 #NB changed to 3 (0,1,2)
-    loss_type: "entropy" #NB changed to entropy from asymmetric
-    #pos_weight: 0.5
-    #asym_penalty: ${asym_penalty}
-    #asym_alpha: 0.025
-    #asym_beta: 1.0
+  
+    num_targets: 3
+    loss_type: "entropy"
+    average_type: 'macro'
+    #class_weights:
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}
