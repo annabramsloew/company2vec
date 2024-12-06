@@ -15,8 +15,8 @@ import os
 
 
 
-N_TO_ASK = 6 # number of points to evaluate at the same time
-N_TO_EVALUATE = 25 #number of points
+N_TO_ASK = 2 # number of points to evaluate at the same time
+N_TO_EVALUATE = 10 #number of points
 
 
 def dump_results(optimizer, dir_path="..scikit_pretraining/", name="results_rnn.pkl"):
