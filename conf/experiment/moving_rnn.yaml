@@ -11,14 +11,13 @@ defaults:
   
 #GENERAL
 version: 0.1
-implementation: "v1"
+implementation: "v1.0"
 comments: "m0del v1.1"
 name: "moving"
 model_name: "rnn"
 seed: 2023
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
-asym_penalty: 0.5
 
 ### dissable during the tuning
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
@@ -77,11 +76,9 @@ model:
     #### CLS SPECIFIC
 
     num_targets: 2
-    loss_type: "asymmetric"
-    pos_weight: 0.5
-    asym_penalty: ${asym_penalty}
-    asym_alpha: 0.025
-    asym_beta: 1.0
+    loss_type: "entropy"
+    average_type: 'micro'
+    #class_weights:
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}

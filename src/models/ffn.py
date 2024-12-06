@@ -37,16 +37,6 @@ class FFN(pl.LightningModule):
     def init_loss(self):
         if self.hparams.loss_type == "robust":
             raise NotImplementedError("Deprecated: use asymmetric loss instead")
-        elif self.hparams.loss_type == "asymmetric":
-            if self.hparams.encoder_type == "neural":
-                self.loss = AsymmetricCrossEntropyLoss(pos_weight=self.hparams.pos_weight)
-            elif self.hparams.encoder_type == "logistic":
-                self.loss = AsymmetricCrossEntropyLoss(pos_weight=self.hparams.pos_weight, sigmoid=True)
-            elif self.hparams.encoder_type == "table":
-                self.loss = AsymmetricCrossEntropyLoss(pos_weight=self.hparams.pos_weight, sigmoid=True)
-
-        elif self.hparams.loss_type == "asymmetric_dynamic":
-            raise NotImplementedError
         elif self.hparams.loss_type == "entropy":
             self.loss = nn.CrossEntropyLoss()
         else:
@@ -59,8 +49,9 @@ class FFN(pl.LightningModule):
         elif self.hparams.encoder_type == "logistic":
             log.info("Encoder is a LOGISTIC REGRESSOR")
             self.encoder = LogisticRegression(self.hparams)
-        elif self.hparams.encoder_type == "table":
-            self.encoder = LifeTable(self.hparams)
+        elif self.hparams.encoder_type == "multinomial":
+            log.info("Encoder is a MULTINOMIAL REGRESSOR")
+            self.encoder = MultinomialRegression(self.hparams)
         else: 
             raise NotImplementedError()
 
@@ -77,14 +68,14 @@ class FFN(pl.LightningModule):
         self.val_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
         self.val_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
         self.val_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.val_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
 
         ##### TEST
         self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
         self.test_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
         self.test_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
         self.test_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.test_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
 
     def transform_targets(self, targets):
         """Transform Tensor of targets based on the type of loss"""
@@ -216,7 +207,7 @@ class FFN(pl.LightningModule):
     def log_metrics(self, predictions, targets, loss, stage, on_step: bool = True, on_epoch: bool = True):             
         """Compute on step/epoch metrics"""
         assert stage in ["train", "val", "test"]
-        if self.hparams.encoder_type == "neural":
+        if self.hparams.encoder_type in ["neural", "multinomial"]:
             scores = F.softmax(predictions, dim=1)
             preds = scores
         else:
@@ -340,10 +331,10 @@ class LogisticRegression(nn.Module):
         return self.ff(x)
         #return self.ff(x)
 
-class LifeTable(nn.Module):
+class MultinomialRegression(nn.Module):
     def __init__(self, hparams) -> None:
         super().__init__()
-        self.ff = nn.Linear(2, 1)
-        self.sigmoid = nn.Sigmoid()
+        self.ff = nn.Linear(hparams.input_size, hparams.num_targets)
+        self.softmax = nn.Softmax()
     def forward(self, x):
-        return self.ff(x[:, 3:5])
+        return self.ff(x)
