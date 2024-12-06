@@ -38,7 +38,10 @@ class FFN(pl.LightningModule):
         if self.hparams.loss_type == "robust":
             raise NotImplementedError("Deprecated: use asymmetric loss instead")
         elif self.hparams.loss_type == "entropy":
-            self.loss = nn.CrossEntropyLoss()
+            if self.hparams.encoder_type == 'logistic':
+                self.loss = nn.BCELoss()
+            else:
+                self.loss = nn.CrossEntropyLoss()
         else:
             raise NotImplemented
 
@@ -82,7 +85,10 @@ class FFN(pl.LightningModule):
         if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
             targets = F.one_hot(targets.long(), num_classes = self.hparams.cls_num_targets) ## for custom cross entropy we need to encode targets into one hot representation
         elif self.hparams.loss_type == "entropy":
-           targets = targets.long()
+            if self.hparams.encoder_type == 'logistic':
+                targets = targets.unsqueeze(1).float()
+            else:
+                targets = targets.long()
         else:
             raise NotImplemented
         return targets
@@ -104,7 +110,7 @@ class FFN(pl.LightningModule):
         predicted = self(batch)
         ## 2. LOSS
         targets = self.transform_targets(batch["target"])
-        loss = self.loss(predicted, target=targets)
+        loss = self.loss(predicted, targets)
         ## 3. METRICS
         self.train_step_predictions.append(predicted.detach())
         self.train_step_targets.append(targets.detach())
@@ -211,12 +217,12 @@ class FFN(pl.LightningModule):
             scores = F.softmax(predictions, dim=1)
             preds = scores
         else:
-            predictions = torch.sigmoid(predictions)
-            preds = predictions
-            # scores = torch.zeros((predictions.size(0),2), dtype=predictions.dtype, device= predictions.device)
-            # scores[:,0] += torch.ones(predictions.size(0), dtype=predictions.dtype, device= predictions.device)
-            # scores[:,0] -= predictions.squeeze()
-            # scores[:,1] += predictions.squeeze()
+            scores = torch.zeros((predictions.size(0),2), dtype=predictions.dtype, device= predictions.device)
+            scores[:,0] += torch.ones(predictions.size(0), dtype=predictions.dtype, device= predictions.device)
+            scores[:,0] -= predictions.squeeze()
+            scores[:,1] += predictions.squeeze()
+            preds = scores
+            targets = targets.flatten().long() # not too beautiful
 
         if stage == "train":
             self.log("train/loss", loss, on_step=on_step, on_epoch = on_epoch)
@@ -328,7 +334,8 @@ class LogisticRegression(nn.Module):
         self.ff = nn.Linear(hparams.input_size, 1)
         self.sigmoid = nn.Sigmoid()
     def forward(self, x):
-        return self.ff(x)
+        output = self.ff(x)
+        return self.sigmoid(output)
         #return self.ff(x)
 
 class MultinomialRegression(nn.Module):
@@ -337,4 +344,4 @@ class MultinomialRegression(nn.Module):
         self.ff = nn.Linear(hparams.input_size, hparams.num_targets)
         self.softmax = nn.Softmax()
     def forward(self, x):
-        return self.ff(x)
+        return self.softmax(self.ff(x))
