@@ -49,7 +49,7 @@ optimizer = Optimizer(dimensions = search_space,
                       acq_func="PI",
                       acq_optimizer="lbfgs",
                       random_state = 2021,
-                      n_initial_points=5)
+                      n_initial_points=1)
 
 for i in range(len(scores)):
         optimizer.tell(params[i], scores[i])
