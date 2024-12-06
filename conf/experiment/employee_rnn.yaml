@@ -78,7 +78,8 @@ model:
     num_targets: 3
     loss_type: "entropy"
     average_type: 'macro'
-    #class_weights:
+    #class_weights: [1/0.334, 1/0.314, 1/0.352]
+    class_weights: [2.9904, 3.1847, 2.8409]
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}

@@ -15,7 +15,7 @@ implementation: "v1"
 comments: "m0del v1.0"
 name: "moving"
 model_name: "c2v"
-seed: 2024
+seed: 2023
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
 pretrained_model_path: "/master_thesis/checkpoints/test_v9/pre_training_v9/0.0/0.0-epoch=29.ckpt" #UPDATE THIS
@@ -73,7 +73,8 @@ model:
     num_targets: 2
     loss_type: "entropy"
     average_type: 'micro'
-    class_weights: [1/0.781, 1/0.219]   
+    #class_weights: [1/0.781, 1/0.219]
+    class_weights: [1.2804, 4.5662]  
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}

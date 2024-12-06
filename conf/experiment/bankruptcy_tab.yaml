@@ -62,8 +62,8 @@ model:
     experiment_version: ${version} 
 
 trainer:
-  accelerator: 'cpu' #'gpu'
-  devices: 1 #[0]
+  accelerator: 'gpu'
+  devices: [0]
   callbacks:
   - ${callbacks.checkpoint_cls}
   - ${callbacks.lr_monitor}

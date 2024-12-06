@@ -78,7 +78,8 @@ model:
     num_targets: 2
     loss_type: "entropy"
     average_type: 'micro'
-    #class_weights:
+    #class_weights: [1/0.98, 1/0.02]
+    class_weights: [1.0204, 50]
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}
