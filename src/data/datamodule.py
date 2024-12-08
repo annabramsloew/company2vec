@@ -597,6 +597,30 @@ class CLSDataModule(C2VDataModule):
         indices = self.get_ordered_indexes(split = "test")
         return self.get_fixed_dataloader(self.test, indices)
 
+class MovingCLSDataModule(C2VDataModule):
+
+    def get_dataloader(self, dataset: Dataset, shuffle: bool = True) -> DataLoader:
+        """Instantiaties and return a dataloader for the given dataset using the
+        parameters of the module"""
+        return DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=shuffle,
+            collate_fn=collate_encoded_documents,
+            generator=torch.Generator(),
+            pin_memory=self.pin_memory,
+            persistent_workers=self.persistent_workers
+        )
+
+    def train_dataloader(self): # non weighted dataloader
+        return self.get_dataloader(self.train, shuffle=True)
+    
+    def val_dataloader(self): # non weighted dataloader
+        return self.get_dataloader(self.val, shuffle=False)
+    
+    def test_dataloader(self): # non weighted dataloader
+        return self.get_dataloader(self.test, shuffle=False)
 
 class MultiCLSDataModule(C2VDataModule):
 

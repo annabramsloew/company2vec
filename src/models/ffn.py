@@ -39,11 +39,11 @@ class FFN(pl.LightningModule):
             raise NotImplementedError("Deprecated: use asymmetric loss instead")
         elif self.hparams.loss_type == "entropy":
             if self.hparams.encoder_type == 'logistic':
-                class_weights = torch.tensor(self.hparams.class_weights).to(self.device)
-                self.loss = nn.BCELoss(weight=class_weights)
+                class_weights = torch.tensor(self.hparams.class_weights).to(self.device) #TODO: add class weights
+                self.loss = nn.BCELoss()
             else:
-                class_weights = torch.tensor(self.hparams.class_weights).to(self.device)
-                self.loss = nn.CrossEntropyLoss(weight=class_weights)
+                self.register_buffer("class_weights", torch.tensor(self.hparams.class_weights))
+                self.loss = nn.CrossEntropyLoss(weight=self.class_weights)
         else:
             raise NotImplemented
 
@@ -62,25 +62,26 @@ class FFN(pl.LightningModule):
 
     def init_metrics(self):
         """Initialise variables to store metrics"""
+        task = 'binary' if self.hparams.num_targets == 2 else 'multiclass'
         ### TRAIN
-        self.train_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.cls_num_targets, average="macro")
-        self.train_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.cls_num_targets, average="macro")
-        self.train_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.cls_num_targets, average="macro")
-        self.train_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.cls_num_targets, average="macro")
+        self.train_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+        self.train_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+        self.train_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+        self.train_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
         
          ##### VALIDATION
-        self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.val_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.val_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.val_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.val_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
+        self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_auc = torchmetrics.AUROC(task=task, num_classes=self.hparams.num_targets, average="macro")
 
         ##### TEST
-        self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.test_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.test_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.test_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.test_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
+        self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_auc = torchmetrics.AUROC(task=task, num_classes=self.hparams.num_targets, average="macro")
 
     def transform_targets(self, targets):
         """Transform Tensor of targets based on the type of loss"""
@@ -217,23 +218,20 @@ class FFN(pl.LightningModule):
         assert stage in ["train", "val", "test"]
         if self.hparams.encoder_type in ["neural", "multinomial"]:
             scores = F.softmax(predictions, dim=1)
-            preds = scores
-        else:
-            scores = torch.zeros((predictions.size(0),2), dtype=predictions.dtype, device= predictions.device)
-            scores[:,0] += torch.ones(predictions.size(0), dtype=predictions.dtype, device= predictions.device)
-            scores[:,0] -= predictions.squeeze()
-            scores[:,1] += predictions.squeeze()
-            preds = scores
+            if self.hparams.num_targets == 2:
+                preds = scores[:,1].flatten()
+            else:
+                preds = scores
+        else: #logistic
+            # scores = torch.zeros((predictions.size(0),2), dtype=predictions.dtype, device= predictions.device)
+            # scores[:,0] += torch.ones(predictions.size(0), dtype=predictions.dtype, device= predictions.device)
+            # scores[:,0] -= predictions.squeeze()
+            # scores[:,1] += predictions.squeeze()
+            preds = predictions.flatten()
             targets = targets.flatten().long() # not too beautiful
 
         if stage == "train":
             self.log("train/loss", loss, on_step=on_step, on_epoch = on_epoch)
-            # if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-            #     self.log("train/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-            #     self.log("train/pos_predictions", sum(scores[:,0]<0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
-            # else:
-            #     self.log("train/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-
             self.log("train/accuracy", self.train_accuracy(preds, targets), on_step=on_step, on_epoch = on_epoch)
             self.log("train/recall", self.train_recall(preds, targets), on_step=on_step, on_epoch = on_epoch)
             self.log("train/precision", self.train_precision(preds, targets), on_step=on_step, on_epoch = on_epoch)
@@ -241,11 +239,6 @@ class FFN(pl.LightningModule):
 
         elif stage == "val":
             self.log("val/loss", loss, on_step=on_step, on_epoch = on_epoch)
-            #if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-            #     self.log("val/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-            #     self.log("val/pos_predictions", sum(scores[:,0]<0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
-            # else:
-            #     self.log("val/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
             
             self.val_f1.update(preds, targets) # this should not happen in self.log 
             self.val_accuracy.update(preds, targets) # this should not happen in self.log 
@@ -261,16 +254,7 @@ class FFN(pl.LightningModule):
 
         elif stage == "test":
             self.log("test/loss", loss, on_step=on_step, on_epoch = on_epoch)
-            # if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-            #     self.log("test/pos_samples", torch.sum(targets[:,1])/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-            #     self.log("test/pos_predictions", sum(scores[:,0]<0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
 
-            # else:
-            #     self.log("test/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
-            
-                       # else:
-            #     self.log("test/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
-            
             self.test_f1.update(preds, targets) # this should not happen in self.log 
             self.test_accuracy.update(preds, targets) # this should not happen in self.log 
             self.test_precision.update(preds, targets)  # this should not happen in self.log 
@@ -346,4 +330,4 @@ class MultinomialRegression(nn.Module):
         self.ff = nn.Linear(hparams.input_size, hparams.num_targets)
         self.softmax = nn.Softmax()
     def forward(self, x):
-        return self.softmax(self.ff(x))
+        return self.ff(x)

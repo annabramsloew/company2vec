@@ -88,8 +88,9 @@ class Transformer_CLS(pl.LightningModule):
             #self.loss = AsymmetricCrossEntropyLoss(pos_weight=self.hparams.pos_weight, penalty=self.hparams.asym_penalty)
         elif self.hparams.loss_type == "entropy":
             if hasattr(self.hparams, 'class_weights'):
-                class_weights = torch.tensor(self.hparams.class_weights).to(self.device)
-                self.loss = nn.CrossEntropyLoss(weight=class_weights) #change also in rnn/ffn
+                self.register_buffer("class_weights", torch.tensor(self.hparams.class_weights))
+                #class_weights = torch.tensor(self.hparams.class_weights).to(self.device)
+                self.loss = nn.CrossEntropyLoss(weight=self.class_weights) #change also in rnn/ffn
             else:
                 self.loss = nn.CrossEntropyLoss()
         else:
@@ -141,25 +142,27 @@ class Transformer_CLS(pl.LightningModule):
 
     def init_metrics(self):
         """Initialise variables to store metrics"""
-        ### TRAIN
-        self.train_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.train_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.train_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
-        self.train_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="macro")
         
-        ##### VALIDATION
-        self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
-        self.val_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
-        self.val_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
-        self.val_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
-        self.val_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
+        task = 'binary' if self.hparams.num_targets == 2 else 'multiclass'
+        ### TRAIN
+        self.train_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+        self.train_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+        self.train_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+        self.train_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+        
+         ##### VALIDATION
+        self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.val_auc = torchmetrics.AUROC(task=task, num_classes=self.hparams.num_targets, average="macro")
 
         ##### TEST
-        self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
-        self.test_precision = torchmetrics.Precision(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
-        self.test_recall = torchmetrics.Recall(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
-        self.test_f1 = torchmetrics.F1Score(threshold=0.5, num_classes=self.hparams.num_targets, average="micro")
-        self.test_auc = torchmetrics.AUROC(num_classes=self.hparams.num_targets, average="macro")
+        self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        self.test_auc = torchmetrics.AUROC(task=task, num_classes=self.hparams.num_targets, average="macro")
 
 
     def init_collector(self):
@@ -404,12 +407,8 @@ class Transformer_CLS(pl.LightningModule):
         
         if stage == "train":
             self.log("train/loss", loss, on_step=on_step, on_epoch = on_epoch)
-            if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-                raise ValueError("Not implemented")
-                self.log("train/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-                self.log("train/pos_predictions", sum(preds>0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
-            else:
-                self.log("train/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
+
+            self.log("train/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
 
             self.log("train/accuracy", self.train_accuracy(scores, targets), on_step=on_step, on_epoch = on_epoch)
             self.log("train/recall", self.train_recall(scores, targets), on_step=on_step, on_epoch = on_epoch)
@@ -418,39 +417,28 @@ class Transformer_CLS(pl.LightningModule):
 
         elif stage == "val":
             self.log("val/loss", loss, on_step=on_step, on_epoch = on_epoch)
-            if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-                raise ValueError("Not implemented")
-            #     self.log("val/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-            #     self.log("val/pos_predictions", sum(preds>0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
-            # else:
-            #     self.log("val/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
-            
-            self.log("val/f1", self.val_f1.compute(), on_step=False, on_epoch=True)
-            self.log("val/acc", self.val_accuracy.compute(), on_step=False, on_epoch=True)
-            self.log("val/precision", self.val_precision.compute(), on_step=False, on_epoch=True)
-            self.log("val/recall", self.val_recall.compute(), on_step=False, on_epoch=True)
-            self.log("val/auc", self.val_auc.compute(), on_step=False, on_epoch=True)
 
-            # Reset metrics
-            self.val_f1.reset()
-            self.val_accuracy.reset()
-            self.val_precision.reset()
-            self.val_recall.reset()
-            self.val_auc.reset()
+            self.log("val/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
             
+            self.val_f1.update(preds, targets) # this should not happen in self.log 
+            self.val_accuracy.update(preds, targets) # this should not happen in self.log 
+            self.val_precision.update(preds, targets)  # this should not happen in self.log 
+            self.val_recall.update(preds, targets) # this should not happen in self.log
+            self.val_auc.update(preds, targets) # this should not happen in self.log 
+            
+            self.log("val/f1", self.val_f1, on_step = False, on_epoch = True)
+            self.log("val/acc", self.val_accuracy, on_step = False, on_epoch = True)
+            self.log("val/precision", self.val_precision, on_step = False, on_epoch = True)
+            self.log("val/recall", self.val_recall, on_step = False, on_epoch = True)
+            self.log("val/auc", self.val_auc, on_step = False, on_epoch = True)
+
             self.val_trg.update(targets)
             self.val_prb.update(preds)
             self.val_id.update(sid)
 
         elif stage == "test":
             self.log("test/loss", loss, on_step=on_step, on_epoch = on_epoch)
-            if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
-                raise ValueError("Not implemented")
-                self.log("test/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
-                self.log("test/pos_predictions", sum(preds>0.5)/targets.shape[0], on_step=on_step, on_epoch = on_epoch)
-
-            # else:
-            #     self.log("test/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)   
+            
             self.test_f1.update(preds, targets) # this should not happen in self.log 
             self.test_accuracy.update(preds, targets) # this should not happen in self.log 
             self.test_precision.update(preds, targets)  # this should not happen in self.log 
