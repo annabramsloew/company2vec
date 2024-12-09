@@ -403,17 +403,17 @@ class Transformer_CLS(pl.LightningModule):
         """Compute on step/epoch metrics"""
         assert stage in ["train", "val", "test"]
         scores = F.softmax(predictions, dim=1)
-        preds = scores
+        preds = scores[:,1].flatten()
         
         if stage == "train":
             self.log("train/loss", loss, on_step=on_step, on_epoch = on_epoch)
 
             self.log("train/pos_samples", torch.sum(targets)/targets.shape[0],  on_step=on_step, on_epoch = on_epoch)
 
-            self.log("train/accuracy", self.train_accuracy(scores, targets), on_step=on_step, on_epoch = on_epoch)
-            self.log("train/recall", self.train_recall(scores, targets), on_step=on_step, on_epoch = on_epoch)
-            self.log("train/precision", self.train_precision(scores, targets), on_step=on_step, on_epoch = on_epoch)
-            self.log("train/f1", self.train_f1(scores, targets), on_step=on_step, on_epoch = on_epoch)
+            self.log("train/accuracy", self.train_accuracy(preds, targets), on_step=on_step, on_epoch = on_epoch)
+            self.log("train/recall", self.train_recall(preds, targets), on_step=on_step, on_epoch = on_epoch)
+            self.log("train/precision", self.train_precision(preds, targets), on_step=on_step, on_epoch = on_epoch)
+            self.log("train/f1", self.train_f1(preds, targets), on_step=on_step, on_epoch = on_epoch)
 
         elif stage == "val":
             self.log("val/loss", loss, on_step=on_step, on_epoch = on_epoch)
