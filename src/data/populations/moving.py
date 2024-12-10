@@ -111,7 +111,7 @@ class MovingSubPopulation(Population):
             blocksize="256MB"
         ).compute()
 
-        # filter on the bankruptcy status
+        # filter on the ChangeType (only include moving)
         df_target = df_target.loc[lambda x: x.ChangeType == 'Municipality']
 
         # filter on the period of interest
