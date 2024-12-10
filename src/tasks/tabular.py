@@ -45,7 +45,10 @@ class TabularCLS(Task):
         origin_dk  = 1. if document.background.origin == "DK" else 0.
         origin_nd  =  1. - origin_dk
         background = np.array([origin_dk, origin_nd], dtype=np.float32) #deleted , sex_m, sex_f, age from brackets
-        sequence = " ".join(reduce(lambda xs, ys: xs + ys, document.sentences))
+        if len(document.sentences) == 0:
+            sequence = " "
+        else: 
+            sequence = " ".join(reduce(lambda xs, ys: xs + ys, document.sentences))
         data = self.vectorizer.transform([sequence]).toarray().flatten().astype(np.float32)
 
         data /= data.sum()
