@@ -1,0 +1,9 @@
+defaults:
+  - /data/corpus@corpus: bankruptcy_set
+  - /data/vocabulary@vocabulary: global_set
+  - /task@task: cls
+
+_target_: src.data.datamodule.CLSDataModuleNoUpsampling
+
+batch_size: 8
+num_workers: 2
