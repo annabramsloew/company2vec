@@ -14,4 +14,4 @@ p_sequence_abspos_noise: 0.1
 p_sequence_hide_background: 0.01
 p_sentence_drop_tokens: 0.01
 
-shuffle_within_sentences: trues
+shuffle_within_sentences: true

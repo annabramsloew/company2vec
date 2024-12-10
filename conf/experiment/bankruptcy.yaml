@@ -70,6 +70,7 @@ model:
     #### CLS SPECIFIC
     freeze_embeddings: True
     freeze_positions: False
+    cls_num_targets: 2
     num_targets: 2
     loss_type: "entropy"
     #class_weights: [1/0.963, 1/0.037]
