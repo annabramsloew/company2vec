@@ -597,7 +597,7 @@ class CLSDataModule(C2VDataModule):
         indices = self.get_ordered_indexes(split = "test")
         return self.get_fixed_dataloader(self.test, indices)
 
-class MovingCLSDataModule(C2VDataModule):
+class CLSDataModuleNoUpsampling(C2VDataModule):
 
     def get_dataloader(self, dataset: Dataset, shuffle: bool = True) -> DataLoader:
         """Instantiaties and return a dataloader for the given dataset using the
@@ -622,7 +622,7 @@ class MovingCLSDataModule(C2VDataModule):
     def test_dataloader(self): # non weighted dataloader
         return self.get_dataloader(self.test, shuffle=False)
 
-class CLSDataModuleNoUpsampling(C2VDataModule):
+class MultiCLSDataModule(C2VDataModule):
 
     def get_train_weights(self) -> torch.Tensor:
         ids = self.corpus.population.data_split().train
