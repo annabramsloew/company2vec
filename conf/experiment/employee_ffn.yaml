@@ -49,7 +49,8 @@ model:
     loss_type: "entropy"
     average_type: "macro"
     #class_weights: [1/0.334, 1/0.314, 1/0.352]
-    class_weights: [2.9904, 3.1847, 2.8409]
+    #class_weights: [2.9904, 3.1847, 2.8409]
+    class_weigths: [1.0, 1.0, 1.0]
 
     learning_rate: 1.7e-4
     weight_decay: 1.e-4
