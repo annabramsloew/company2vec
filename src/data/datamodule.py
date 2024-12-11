@@ -622,7 +622,7 @@ class MovingCLSDataModule(C2VDataModule):
     def test_dataloader(self): # non weighted dataloader
         return self.get_dataloader(self.test, shuffle=False)
 
-class MultiCLSDataModule(C2VDataModule):
+class CLSDataModuleNoUpsampling(C2VDataModule):
 
     def get_train_weights(self) -> torch.Tensor:
         ids = self.corpus.population.data_split().train
