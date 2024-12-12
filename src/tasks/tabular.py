@@ -46,15 +46,12 @@ class TabularCLS(Task):
         origin_nd  =  1. - origin_dk
         background = np.array([origin_dk, origin_nd], dtype=np.float32) #deleted , sex_m, sex_f, age from brackets
         if len(document.sentences) == 0:
-            sequence = " "
+            sequence = "[UNK]"
         else: 
             sequence = " ".join(reduce(lambda xs, ys: xs + ys, document.sentences))
         data = self.vectorizer.transform([sequence]).toarray().flatten().astype(np.float32)
-
-        if data.sum() != 0:
-            data /= data.sum()
-        else:
-            log.warning("Data sum is zero, skipping normalization")
+        
+        data /= data.sum()
 
         data = np.concatenate([background, data])
 
