@@ -51,7 +51,10 @@ class TabularCLS(Task):
             sequence = " ".join(reduce(lambda xs, ys: xs + ys, document.sentences))
         data = self.vectorizer.transform([sequence]).toarray().flatten().astype(np.float32)
 
-        data /= data.sum()
+        if data.sum() != 0:
+            data /= data.sum()
+        else:
+            log.warning("Data sum is zero, skipping normalization")
 
         data = np.concatenate([background, data])
 
