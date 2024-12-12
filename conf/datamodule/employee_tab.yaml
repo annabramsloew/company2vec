@@ -3,7 +3,7 @@ defaults:
   - /data/vocabulary@vocabulary: global_set
   - /task@task: cls_tab
 
-_target_: src.data.datamodule.MultiCLSDataModule
+_target_: src.data.datamodule.CLSDataModuleNoUpsampling
 
 batch_size: 8
 num_workers: 2

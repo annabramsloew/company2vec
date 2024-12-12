@@ -5,7 +5,11 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 
-from ..serialize import DATA_ROOT
+# path depending on user
+if Path.home().name == "nikolaibeckjensen":
+    DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet" / "Virk2Vec" / "data"
+elif Path.home().name == "annabramslow":
+    DATA_ROOT = Path.home() / "Library" / "CloudStorage" / "OneDrive-DanmarksTekniskeUniversitet(2)" / "Virk2Vec" / "data"
 
 def fetch_population_data(task_name):
 
@@ -252,32 +256,30 @@ def bankruptcy():
     assert isinstance(result, pd.DataFrame)
     return result
 # ----------------------------------------------------- Saving -----------------------------------------------------
-def save_dummy_predictions(keywords, dummy_predictions):
-    if "capital_increase" in keywords:
-        dummy_predictions.to_pickle(DATA_ROOT / "processed" /"populations"/ "dummy_predictions" / "dummy_predictions_capital_increase.pkl")
-    elif "moving" in keywords:
-        dummy_predictions.to_pickle(DATA_ROOT / "processed" /"populations"/ "dummy_predictions" / "dummy_predictions_moving.pkl")
-    elif "employee_level" in keywords:
-        dummy_predictions.to_pickle(DATA_ROOT / "processed" /"populations"/ "dummy_predictions" / "dummy_predictions_employee_level.pkl")
-    elif "bankruptcy" in keywords:
-        dummy_predictions.to_pickle(DATA_ROOT / "processed" /"populations"/ "dummy_predictions" / "dummy_predictions_bankruptcy.pkl")
-    else:
-        "No valid keyword found. Please use one of the following: 'capital_increase', 'moving', 'employee_level', 'bankruptcy'."
-    
-    #print saved statement specifying keywords
-    return f"Dummy predictions saved for {keywords}."
 
+def save_dummy_predictions(task, dummy_predictions):
+
+    folder = DATA_ROOT.parent / "predictions" / task / "dummy"
+
+    # save dummy predictions as npy file, first target, then prediction
+    np.save(folder / "trg.npy", dummy_predictions.TARGET.to_numpy())
+    np.save(folder / "prb.npy", dummy_predictions.PREDICTION.to_numpy())
+    np.save(folder / "id.npy", dummy_predictions.index.to_numpy())
+
+    return f"Dummy predictions saved for {task}."
+
+# ----------------------------------------------------- Main -----------------------------------------------------
 #use for debugging
 def main():
-    keywords = ["capital_increase", "moving", "employee_level", "bankruptcy"]
+
     #for capital_increase
-    save_dummy_predictions(keywords[0], capital_increase("2021-01-01", "2021-12-31"))
+    save_dummy_predictions('capital', capital_increase("2021-01-01", "2021-12-31"))
     #for moving
-    save_dummy_predictions(keywords[1], moving("2021-01-01", "2021-12-31"))
+    save_dummy_predictions('moving', moving("2021-01-01", "2021-12-31"))
     #for employee_level
-    save_dummy_predictions(keywords[2], employee_level("2021-01-01", "2021-12-31"))
+    save_dummy_predictions('employee', employee_level("2021-01-01", "2021-12-31"))
     #for bankruptcy
-    save_dummy_predictions(keywords[3], bankruptcy())
+    save_dummy_predictions('bankruptcy', bankruptcy())
 
 if __name__ == "__main__":
     main()
