@@ -190,7 +190,8 @@ class Transformer_CLS(pl.LightningModule):
         """Collect predictions and targets"""
         self.test_trg = torchmetrics.CatMetric()
         self.test_prb = torchmetrics.CatMetric()
-        self.test_id  = torchmetrics.CatMetric()
+        self.test_id1  = torchmetrics.CatMetric()
+        self.test_id2  = torchmetrics.CatMetric()
         self.val_trg = torchmetrics.CatMetric()
         self.val_prb = torchmetrics.CatMetric()
         self.val_id  = torchmetrics.CatMetric()
@@ -475,17 +476,29 @@ class Transformer_CLS(pl.LightningModule):
             self.log("test/recall", self.test_recall, on_step = False, on_epoch = True)
             self.log("test/auc", self.test_auc, on_step = False, on_epoch = True)
             
-            
+
             self.test_trg.update(targets)
             self.test_prb.update(preds)
-            self.test_id.update(sid)
-    
 
-    @staticmethod
-    def load_lookup(path):
-        """Load Token-to-Index and Index-to-Token dictionary"""
-        with open(path, "rb") as f:
-            indx2token, token2indx = pickle.load(f)
-        return indx2token, token2indx
+            # Convert to 8-digit strings
+            if isinstance(sid, torch.Tensor):
+                sid = sid.cpu().numpy()
+            str_ids = [f"{int(x):08d}" for x in sid]
+            
+            # Split into first/second half
+            first_half = [int(x[:4]) for x in str_ids]
+            second_half = [int(x[4:]) for x in str_ids]
+            
+            # Update both metrics
+            self.test_id1.update(torch.tensor(first_half))
+            self.test_id2.update(torch.tensor(second_half))
+        
+
+        @staticmethod
+        def load_lookup(path):
+            """Load Token-to-Index and Index-to-Token dictionary"""
+            with open(path, "rb") as f:
+                indx2token, token2indx = pickle.load(f)
+            return indx2token, token2indx
 
 

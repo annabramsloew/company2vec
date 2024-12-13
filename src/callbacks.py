@@ -232,11 +232,15 @@ class CollectOutputs(pl.Callback):
             with open(path + "prb.npy", "wb") as f:
                 prb = pl_module.test_prb.compute().cpu().numpy()
                 np.save(f, prb)
+
+            first = pl_module.test_id1.compute().cpu().numpy()
+            second = pl_module.test_id2.compute().cpu().numpy()
+            full_ids = [f"{int(a):04d}{int(b):04d}" for a, b in zip(first, second)]
+            final_ids = np.array([int(x) for x in full_ids])  
             with open(path + "id.npy", "wb") as f:
-                prb = pl_module.test_id.compute().cpu().numpy()
-                np.save(f, prb)
+                np.save(f, final_ids)
         except:
-            print("Data is not collected")
+            print("Error occured in saving of test results")
 
 class CalculateRisk(pl.Callback):
     """Identify the uncertain region (for predictions)"""
