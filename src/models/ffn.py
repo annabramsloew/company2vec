@@ -63,24 +63,45 @@ class FFN(pl.LightningModule):
     def init_metrics(self):
         """Initialise variables to store metrics"""
         task = 'binary' if self.hparams.num_targets == 2 else 'multiclass'
+        top_k = 1 #top-1 accuracy
         ### TRAIN
-        self.train_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
-        self.train_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
-        self.train_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
-        self.train_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+        if task == 'multiclass':
+            self.train_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+            self.train_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+            self.train_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+            self.train_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+        else:
+            self.train_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+            self.train_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+            self.train_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
+            self.train_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro")
         
          ##### VALIDATION
-        self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.val_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.val_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.val_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        if task == 'multiclass':
+            self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+            self.val_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+            self.val_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+            self.val_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+        else:
+            self.val_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+            self.val_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+            self.val_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+            self.val_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        
         self.val_auc = torchmetrics.AUROC(task=task, num_classes=self.hparams.num_targets, average="macro")
 
         ##### TEST
-        self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.test_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.test_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
-        self.test_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        if task == 'multiclass':
+            self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+            self.test_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+            self.test_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+            self.test_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.cls_num_targets, average="macro",top_k=top_k)
+        else:
+            self.test_accuracy = torchmetrics.Accuracy(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+            self.test_precision = torchmetrics.Precision(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+            self.test_recall = torchmetrics.Recall(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+            self.test_f1 = torchmetrics.F1Score(threshold=0.5, task=task, num_classes=self.hparams.num_targets, average=self.hparams.average_type)
+        
         self.test_auc = torchmetrics.AUROC(task=task, num_classes=self.hparams.num_targets, average="macro")
 
     def transform_targets(self, targets):
