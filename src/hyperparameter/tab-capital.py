@@ -15,7 +15,7 @@ import os
 
 
 
-N_TO_ASK = 2 # number of points to evaluate at the same time
+N_TO_ASK = 5 # number of points to evaluate at the same time
 N_TO_EVALUATE = 10 #number of points
 
 
@@ -29,9 +29,20 @@ def dump_results(optimizer, dir_path="..scikit_pretraining/", name="results_rnn.
                 pickle.dump(results, f)
 
 
-params = [[FILL OUT],
+params = [[370, 1, 0.1571789665157697, 0.00039],
+          [64, 4, 0.05, 0.01],
+          [128, 8, 0.35, 0.001],
+          [256, 6, 0.0, 0.00001],
+          [512, 2, 0.1, 0.005],
+          #batch2
+          [600, 1, 0.0888905716216579, 0.0077388427011889525],
+          [548, 8, 0.04582462440937921, 1e-05],
+          [598, 8, 0.21187874073446084, 1e-05],
+          [768, 1, 0.4058587068962934, 0.01],
+          [768, 1, 0.2567311655873875, 0.01]
          ]
-scores = []
+scores = [0.5454,0.6208,0.7863,0.5765,0.4539,
+          0.3599,0.5795, 1.113,0.9455, 0.3708]
 
 search_space = [Integer(64, 768, name="hidden_size"),  
                 Integer(1,8, name="n_layers"),

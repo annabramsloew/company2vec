@@ -15,8 +15,8 @@ import os
 
 
 
-N_TO_ASK = 6 # number of points to evaluate at the same time
-N_TO_EVALUATE = 25 #number of points
+N_TO_ASK = 5 # number of points to evaluate at the same time
+N_TO_EVALUATE = 10 #number of points
 
 
 def dump_results(optimizer, dir_path="..scikit_pretraining/", name="results_rnn.pkl"):
@@ -30,11 +30,19 @@ def dump_results(optimizer, dir_path="..scikit_pretraining/", name="results_rnn.
 
 
 params = [[370, 1, 0.1571789665157697, False],
-         [292, 7, 0.489655105489462, False],
-         [155, 7, 0.01807295602163467, False],
-         [137, 5, 0.38887399544619544, False],
-         [525, 5, 0.014200431808370221, False]]
-scores = []
+          [64, 4, 0.05, True],
+          [128, 8, 0.35, False],
+          [256, 6, 0.0, True],
+          [512, 2, 0.1, False],
+          #batch2
+          [74, 2, 0.05166670335439904, True],
+          [540, 6, 0.08588314371393198, True],
+          [644, 8, 0.12011884105117891, True],
+          [386, 8, 0.16833492102447722, True],
+          [226, 8, 0.21928632194809175, True]
+        ]
+scores = [1.067, 1.057, 1.091, 1.089, 1.098,
+          1.054, 1.130,1.100,1.088,1.077]
 
 search_space = [Integer(64, 768, name="hidden_size"),  
                 Integer(1,8, name="n_layers"),
