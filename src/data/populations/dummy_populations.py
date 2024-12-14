@@ -84,14 +84,14 @@ def capital_increase(min_date, max_date):
     assert isinstance(result, pd.DataFrame)
     return result
 # ----------------------------------------------------- Moving -----------------------------------------------------
-def moving(min_date, max_date):
+def moving(min_date, max_date, moving_type):
 
     #convert to datetime
     min_date = pd.to_datetime(min_date)
     max_date = pd.to_datetime(max_date)
 
     # fetch y true data and corresponding cvr numbers
-    df_test = fetch_population_data("moving")
+    df_test = fetch_population_data(moving_type)
     df_test = df_test.reset_index(drop=True)
 
     # fetch moving data to look up in
@@ -275,11 +275,13 @@ def main():
     #for capital_increase
     save_dummy_predictions('capital', capital_increase("2021-01-01", "2021-12-31"))
     #for moving
-    save_dummy_predictions('moving', moving("2021-01-01", "2021-12-31"))
+    save_dummy_predictions('moving', moving("2021-01-01", "2021-12-31", "moving"))
     #for employee_level
     save_dummy_predictions('employee', employee_level("2021-01-01", "2021-12-31"))
     #for bankruptcy
     save_dummy_predictions('bankruptcy', bankruptcy())
+    #for new moving subset
+    save_dummy_predictions('moving_min_emp', moving("2021-01-01", "2021-12-31", "moving_min_emp"))
 
 if __name__ == "__main__":
     main()
