@@ -43,7 +43,7 @@ class FFN(pl.LightningModule):
                 self.loss = nn.BCELoss()
             elif self.hparams.encoder_type == 'logistic_weighted':
                 self.register_buffer("class_weights", torch.tensor(self.hparams.class_weights))
-                self.loss = nn.BCEWithLogitsLoss(pos_weight = class_weights[1])
+                self.loss = nn.BCEWithLogitsLoss(pos_weight = self.class_weights[1])
             else:
                 self.register_buffer("class_weights", torch.tensor(self.hparams.class_weights))
                 self.loss = nn.CrossEntropyLoss(weight=self.class_weights)
@@ -251,7 +251,7 @@ class FFN(pl.LightningModule):
             else:
                 preds = scores
         if self.hparams.encoder_type in ["logistic_weighted"]: #for moving task
-            scores = F.sigmoid(predictions)
+            scores = torch.sigmoid(predictions) #f.sigmoid(predictions) is deprecated, so using torch
             scores = scores.flatten()
             preds = scores
             targets = targets.flatten().long()
