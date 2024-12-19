@@ -39,8 +39,11 @@ class FFN(pl.LightningModule):
             raise NotImplementedError("Deprecated: use asymmetric loss instead")
         elif self.hparams.loss_type == "entropy":
             if self.hparams.encoder_type == 'logistic':
-                class_weights = torch.tensor(self.hparams.class_weights).to(self.device) #TODO: add class weights
+                #class_weights = torch.tensor(self.hparams.class_weights).to(self.device) #TODO: add class weights
                 self.loss = nn.BCELoss()
+            elif self.hparams.encoder_type == 'logistic_weighted':
+                self.register_buffer("class_weights", torch.tensor(self.hparams.class_weights))
+                self.loss = nn.BCEWithLogitsLoss(pos_weight = class_weights[1])
             else:
                 self.register_buffer("class_weights", torch.tensor(self.hparams.class_weights))
                 self.loss = nn.CrossEntropyLoss(weight=self.class_weights)
@@ -54,6 +57,9 @@ class FFN(pl.LightningModule):
         elif self.hparams.encoder_type == "logistic":
             log.info("Encoder is a LOGISTIC REGRESSOR")
             self.encoder = LogisticRegression(self.hparams)
+        elif self.hparams.encoder_type == "logistic_weighted":
+            log.info("Encoder is a LOGISTIC REGRESSOR WITH WEIGHTS")
+            self.encoder = LogisticRegWeights(self.hparams)
         elif self.hparams.encoder_type == "multinomial":
             log.info("Encoder is a MULTINOMIAL REGRESSOR")
             self.encoder = MultinomialRegression(self.hparams)
@@ -109,7 +115,7 @@ class FFN(pl.LightningModule):
         if self.hparams.loss_type in ["robust", "asymmetric", "asymmetric_dynamic"]:
             targets = F.one_hot(targets.long(), num_classes = self.hparams.cls_num_targets) ## for custom cross entropy we need to encode targets into one hot representation
         elif self.hparams.loss_type == "entropy":
-            if self.hparams.encoder_type == 'logistic':
+            if self.hparams.encoder_type in ['logistic','logistic_weighted']:
                 targets = targets.unsqueeze(1).float()
             else:
                 targets = targets.long()
@@ -241,15 +247,23 @@ class FFN(pl.LightningModule):
             scores = F.softmax(predictions, dim=1)
             if self.hparams.num_targets == 2:
                 preds = scores[:,1].flatten()
+                scores = scores[:,1].flatten() #for logging
             else:
                 preds = scores
+        if self.hparams.encoder_type in ["logistic_weighted"]: #for moving task
+            scores = F.sigmoid(predictions)
+            scores = scores.flatten()
+            preds = scores
+            targets = targets.flatten().long()
         else: #logistic
             # scores = torch.zeros((predictions.size(0),2), dtype=predictions.dtype, device= predictions.device)
             # scores[:,0] += torch.ones(predictions.size(0), dtype=predictions.dtype, device= predictions.device)
             # scores[:,0] -= predictions.squeeze()
             # scores[:,1] += predictions.squeeze()
+            scores = predictions.flatten() #for logging
             preds = predictions.flatten()
             targets = targets.flatten().long() # not too beautiful
+        #change add to sigmoid for moving
 
         if stage == "train":
             self.log("train/loss", loss, on_step=on_step, on_epoch = on_epoch)
@@ -343,7 +357,16 @@ class LogisticRegression(nn.Module):
     def forward(self, x):
         output = self.ff(x)
         return self.sigmoid(output)
+        #find moving and return different
         #return self.ff(x)
+
+class LogisticRegWeights(nn.Module):
+    def __init__(self, hparams) -> None:
+        super().__init__()
+        self.ff = nn.Linear(hparams.input_size, 1)
+    def forward(self, x):
+        output = self.ff(x)
+        return output
 
 class MultinomialRegression(nn.Module):
     def __init__(self, hparams) -> None:
