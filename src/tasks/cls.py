@@ -5,6 +5,7 @@ from typing import List, TypeVar, cast
 
 import numpy as np
 import pandas as pd
+from random import shuffle
 
 from src.data.types import Background, JSONSerializable, CompanyDocument, EncodedDocument
 from src.tasks.base import Task
@@ -109,6 +110,72 @@ class CLS(Task):
 
         sep_pos[: len(_sep_pos)] = _sep_pos
         return sep_pos
+
+
+class CLS_Shuffled(CLS):
+    def encode_document(self, document: CompanyDocument) -> "CLSEncodedDocument":
+
+        prefix_sentence = (
+            ["[CLS]"] + Background.get_sentence(document.background) + ["[SEP]"]
+        )
+
+        # Shuffle the sentences
+        shuffle(document.sentences)
+
+        sentences = [prefix_sentence] + [s + ["[SEP]"] for s in document.sentences]
+        sentence_lengths = [len(x) for x in sentences]
+
+        def expand(x: List[T]) -> List[T]:
+            assert len(x) == len(sentence_lengths)
+            return list(
+                chain.from_iterable(
+                    length * [i] for length, i in zip(sentence_lengths, x)
+                )
+            )
+
+        abspos_expanded = expand([0] + document.abspos)
+        age_expanded = expand([0.0] + document.age)  
+        assert document.segment is not None
+        segment_expanded = expand([1] + document.segment)
+
+        token2index = self.datamodule.vocabulary.token2index
+        unk_id = token2index["[UNK]"]
+
+        flat_sentences = np.concatenate(sentences)
+        token_ids = np.array([token2index.get(x, unk_id) for x in flat_sentences])
+
+        length = len(token_ids)
+
+        input_ids = np.zeros((4, self.max_length))
+        input_ids[0, :length] = token_ids
+        input_ids[1, :length] = abspos_expanded
+        input_ids[2, :length] = age_expanded
+        input_ids[3, :length] = segment_expanded
+
+        padding_mask = np.repeat(False, self.max_length)
+        padding_mask[:length] = True
+
+        original_sequence = np.zeros(self.max_length)
+        original_sequence[:length] = token_ids
+
+        target = np.array(document.task_info).astype(np.float32)
+
+        sequence_id = np.array(document.cvr)
+
+        if self.pooled:
+            sep_pos = self.extract_sep_positions(token_ids)
+        else:
+            sep_pos = np.array([0])
+
+
+        return CLSEncodedDocument(
+            sequence_id=sequence_id,
+            input_ids=input_ids,
+            padding_mask=padding_mask,
+            target=target,
+            sep_pos=sep_pos,
+            original_sequence=original_sequence,
+        )
 
 @dataclass
 class CLSEncodedDocument(EncodedDocument[CLS]):
