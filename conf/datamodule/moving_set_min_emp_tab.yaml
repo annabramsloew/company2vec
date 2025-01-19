@@ -1,9 +1,9 @@
 defaults:
   - /data/corpus@corpus: moving_set_min_emp
   - /data/vocabulary@vocabulary: global_set
-  - /task@task: cls
+  - /task@task: cls_tab
 
-_target_: src.data.datamodule.CLSDataModule
+_target_: src.data.datamodule.CLSDataModuleNoUpsampling
 
 batch_size: 8
 num_workers: 2

@@ -35,6 +35,14 @@ early_stopping:
   strict: True
   min_delta: 0.001
 
+early_stopping_emp:
+  _target_: pytorch_lightning.callbacks.EarlyStopping
+  monitor: "val/f1"
+  mode: "max"
+  patience: 10
+  strict: True
+  min_delta: 0.01
+
 lr_monitor:
   _target_: pytorch_lightning.callbacks.LearningRateMonitor
 

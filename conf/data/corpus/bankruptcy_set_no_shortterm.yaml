@@ -1,0 +1,16 @@
+defaults:
+  - /data/sources
+  - /data/population@population: bankruptcy_set
+
+_target_: src.data.datamodule.Corpus
+
+name: bankruptcy_set_no_shortterm
+
+sources:
+  - ${data.sources.capital}
+  - ${data.sources.punits}
+  - ${data.sources.financials_no_shortterm}
+  - ${data.sources.employees}
+  - ${data.sources.leadership}
+  - ${data.sources.ownership}
+  - ${data.sources.status}

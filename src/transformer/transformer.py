@@ -118,7 +118,7 @@ class Transformer(nn.Module):
     def get_sequence_embedding(self, x):
         """Get only embeddings"""
         return self.embedding(
-            tokens=x[:, 0], position=x[:, 1], age=torch.full_like(x[:, 2], 5), segment=x[:, 2]
+            tokens=x[:, 0], position=x[:, 1], age=x[:, 2], segment=x[:, 3]
         )
 
     def redraw_projection_matrix(self, batch_idx: int):

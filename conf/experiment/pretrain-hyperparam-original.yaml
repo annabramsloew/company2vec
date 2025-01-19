@@ -7,10 +7,10 @@ defaults:
   
 #GENERAL
 version: 1.0
-implementation: "pre-hyperparameter-tuning-shortterm"
-comments: "with_shortterm_liabilities"
-name: "pre_training_with_shortterm-hyp-run1"
-model_name: "hyp-run1"
+implementation: "pre-hyperparameter-tuning-final"
+comments: "original"
+name: "original"
+model_name: "original"
 
 seed: 2023
 
@@ -25,7 +25,7 @@ model:
   _target_: src.transformer.models.TransformerEncoder
   _convert_: all
   hparams:
-    vocab_size: 989 #this one you should knwo in advance (fix later)
+    vocab_size: 993 #this one you should knwo in advance (fix later)
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}
     hidden_size: 280

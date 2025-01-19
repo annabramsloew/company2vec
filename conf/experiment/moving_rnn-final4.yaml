@@ -2,19 +2,19 @@
 
 ###################################
 #### Classification with company2vec model 
-#### Capital increase predictions
+#### Moving predictions
 
 defaults:
-  - /datamodule: capital_set
-  - /trainer: capital
+  - /datamodule: moving_set_min_emp
+  - /trainer: moving
   - /callbacks
   
 #GENERAL
 version: 0.1
-implementation: "hyperparams-capital-rnn"
+implementation: "hyperparams-moving-rnn-min-emp-final"
 comments: "tuning"
-name: "hyp1"
-model_name: "hyp1"
+name: "run4"
+model_name: "run4"
 seed: 2023
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
@@ -24,7 +24,7 @@ ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implem
 callbacks.checkpoint.dirpath: ${ckpt_path}
 
 ###########################
-###################### MODEL
+###################### MODEL[92, 2, 0.19, True],
 model:
   _target_: src.models.rnn.SimpleGRU
   _convert_: all
@@ -41,10 +41,10 @@ model:
     n_local: -1
     local_window_size: -1
     norm_type: None
-    att_dropout: 0.27 ## Attention Layers
-    fw_dropout: 0.27 ## Positionwise Layers
-    dc_dropout: 0.27 ## Decoder Layer
-    emb_dropout: 0.27 ## Embedding dropout
+    att_dropout: 0.0 ## Attention Layers
+    fw_dropout: 0.0 ## Positionwise Layers
+    dc_dropout: 0.0 ## Decoder Layer
+    emb_dropout: 0.0 ## Embedding dropout
     ## TASK AND LOGS
     training_task: ${datamodule.task.name} # name of the task [mlm, simple]
     experiment_name: ${name}_${model_name}
@@ -70,16 +70,17 @@ model:
     epsilon: 1.e-8
 
     ## RNN
-    n_layers: 3
+    n_layers: 6
     bidirectional: true
 
     #### CLS SPECIFIC
 
     num_targets: 2
+    cls_num_targets: 2
     loss_type: "entropy"
     average_type: 'micro'
-    #class_weights: [1/0.98, 1/0.02]
-    class_weights: [1.0204, 50]
+    #class_weights: [1/0.781, 1/0.219]
+    class_weights: [1.2804, 4.5662]  
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}

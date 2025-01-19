@@ -57,7 +57,7 @@ class Transformer_CLS(pl.LightningModule):
 
     def init_encoder(self):
         self.transformer = Transformer(self.hparams)
-        log.info("Embedding sample before load: %.2f" %self.transformer.embedding.token.weight[1, 0].detach())
+        log.info("Embedding sample before load: %.6f" %self.transformer.embedding.token.weight[1, 0].detach())
         if "none" in self.hparams.pretrained_model_path:
             log.info("No pretrained model")
         else:
@@ -65,7 +65,7 @@ class Transformer_CLS(pl.LightningModule):
             self.transformer.load_state_dict(
                 torch.load(HOME_PATH + self.hparams.pretrained_model_path, map_location=self.device), strict=False
             )
-        log.info("Embedding sample after load: %.2f" %self.transformer.embedding.token.weight[1, 0].detach())
+        log.info("Embedding sample after load: %.6f" %self.transformer.embedding.token.weight[1, 0].detach())
 
     def init_decoder(self):
         if self.hparams.pooled: 

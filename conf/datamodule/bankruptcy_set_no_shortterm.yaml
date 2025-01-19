@@ -1,0 +1,9 @@
+defaults:
+  - /data/corpus@corpus: bankruptcy_set_no_shortterm
+  - /data/vocabulary@vocabulary: global_set_no_shortterm
+  - /task@task: cls_bankruptcy
+
+_target_: src.data.datamodule.CLSDataModule
+
+batch_size: 8
+num_workers: 2

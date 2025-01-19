@@ -5,26 +5,27 @@
 #### Moving predictions
 
 defaults:
-  - /datamodule: moving_set
+  - /datamodule: moving_set_min_emp
   - /trainer: moving
   - /callbacks
   
 #GENERAL
 version: 0.1
-implementation: "v1.0"
-comments: "m0del v1.1"
-name: "moving"
-model_name: "rnn"
+implementation: "hyperparams-moving-rnn-min-emp-final"
+comments: "Final"
+name: "run2"
+model_name: "run2"
 seed: 2023
 
-stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
+stage: "prediction" # pre_training, finetuning, prediction, hyp_tune
 
 ### dissable during the tuning
+pretrained_model_path: "147319/master_thesis/checkpoints/hyperparams-moving-rnn-min-emp-final/run2/run2/0.1/best.ckpt"
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
 callbacks.checkpoint.dirpath: ${ckpt_path}
 
 ###########################
-###################### MODEL
+###################### MODEL[370, 1, 0.16, False]
 model:
   _target_: src.models.rnn.SimpleGRU
   _convert_: all
@@ -33,7 +34,7 @@ model:
     vocab_size: 993 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}    
-    hidden_size: 256
+    hidden_size: 64
     hidden_ff: -1
     hidden_act: "swish"
     n_encoders: -1
@@ -41,10 +42,10 @@ model:
     n_local: -1
     local_window_size: -1
     norm_type: None
-    att_dropout: 0.27 ## Attention Layers
-    fw_dropout: 0.27 ## Positionwise Layers
-    dc_dropout: 0.27 ## Decoder Layer
-    emb_dropout: 0.27 ## Embedding dropout
+    att_dropout: 0.05 ## Attention Layers
+    fw_dropout: 0.05 ## Positionwise Layers
+    dc_dropout: 0.05 ## Decoder Layer
+    emb_dropout: 0.05 ## Embedding dropout
     ## TASK AND LOGS
     training_task: ${datamodule.task.name} # name of the task [mlm, simple]
     experiment_name: ${name}_${model_name}
@@ -70,12 +71,13 @@ model:
     epsilon: 1.e-8
 
     ## RNN
-    n_layers: 3
+    n_layers: 4
     bidirectional: true
 
     #### CLS SPECIFIC
 
     num_targets: 2
+    cls_num_targets: 2
     loss_type: "entropy"
     average_type: 'micro'
     #class_weights: [1/0.781, 1/0.219]

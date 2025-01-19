@@ -5,19 +5,19 @@
 ### Moving predictions
 
 defaults:
-  - /datamodule: moving_tab
+  - /datamodule: moving_set_min_emp_tab
   - /trainer: moving
   - /callbacks
   
 #GENERAL
 version: 0.1
-implementation: "v1.0"
-comments: "m0del v1.1"
-name: "moving"
-model_name: "tab_ffn"
+implementation: "hyperparams-moving-fnn-min-emp-final"
+comments: "tuning"
+name: "run8"
+model_name: "run8"
 seed: 2023
 
-
+pretrained_model_path: "master_thesis/checkpoints/hyperparams-moving-fnn-min-emp-final/run8/run8/0.1/best.ckpt"
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
 cls_num_targets: 2
 num_targets: 2
@@ -32,13 +32,14 @@ model:
   _convert_: all
   hparams:
 
+
     input_size: 985 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
-    hidden_size: 646
-    n_layers: 3
-    dropout: 0.35
+    hidden_size: 64
+    n_layers: 1
+    dropout: 0.002
     batch_size: ${datamodule.batch_size}
 
-    encoder_type: 'neural'
+    encoder_type: 'neural' #or 'logistic'
 
 
     #### CLS SPECIFIC
@@ -49,7 +50,7 @@ model:
     #class_weights: [1/0.781, 1/0.219]
     class_weights: [1.2804, 4.5662]  
 
-    learning_rate: 1.7e-4
+    learning_rate: 0.008
     weight_decay: 1.e-4
     beta1: 0.9
     beta2: 0.999
@@ -72,4 +73,4 @@ trainer:
   - ${callbacks.reseed_dataloader}
   - ${callbacks.early_stopping}
   - ${callbacks.track_ids}
-  #- ${callbacks.collect_outputs} 
+  - ${callbacks.collect_outputs} 

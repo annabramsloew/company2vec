@@ -481,9 +481,9 @@ class C2VDataModule(pl.LightningDataModule):
     def train_dataloader(self) -> DataLoader:
         """Returns the training dataloader"""
         if self.subset:
-            assert self.subset_id < 3
+            assert self.subset_id < 2
             log.info("Subset %s" %self.subset_id)
-            idx = [i for i in range(len(self.train)) if i%3 == self.subset_id]
+            idx = [i for i in range(len(self.train)) if i%2 == self.subset_id]
             log.info("First ID: %s Total records: %s" %(idx[0], len(idx)))
             self.train = torch.utils.data.Subset(self.train, idx)
         return self.get_dataloader(self.train, shuffle=True)
