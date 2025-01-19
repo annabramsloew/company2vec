@@ -15,8 +15,8 @@ import os
 
 
 
-N_TO_ASK = 6 # number of points to evaluate at the same time
-N_TO_EVALUATE = 25 #number of points
+N_TO_ASK = 5 # number of points to evaluate at the same time
+N_TO_EVALUATE = 10 #number of points
 
 
 def dump_results(optimizer, dir_path="..scikit_pretraining/", name="results_rnn.pkl"):
@@ -29,13 +29,23 @@ def dump_results(optimizer, dir_path="..scikit_pretraining/", name="results_rnn.
                 pickle.dump(results, f)
 
 
-params = [[370, 1, 0.1571789665157697, False],
-         [292, 7, 0.489655105489462, False],
-         [155, 7, 0.01807295602163467, False],
-         [137, 5, 0.38887399544619544, False],
-         [525, 5, 0.014200431808370221, False]]
-scores = []
+params = [
+        [370, 1, 0.16, False],
+        [64, 4, 0.05, True], #run2
+        [128, 8, 0.35, False],
+        [256, 6, 0.0, True], #run4
+        [512, 2, 0.10, False],
 
+        [740, 1, 0.48, True],
+        [740, 8, 0.49, False],
+        [66, 8, 0.45, True],
+        [684, 1, 0.0, True],
+        [764, 8, 0.03, True],
+        
+        
+        ]
+
+scores = [0.7108, 0.6829, 0.7104, 0.6815, 0.7093]
 search_space = [Integer(64, 768, name="hidden_size"),  
                 Integer(1,8, name="n_layers"),
                 Real(0.0, 0.5, name="dropout"), 
@@ -49,7 +59,7 @@ optimizer = Optimizer(dimensions = search_space,
                       acq_func="PI",
                       acq_optimizer="lbfgs",
                       random_state = 2021,
-                      n_initial_points=1)
+                      n_initial_points=5)
 
 for i in range(len(scores)):
         optimizer.tell(params[i], scores[i])
