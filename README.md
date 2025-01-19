@@ -15,7 +15,7 @@ We refer to Savcisens' repository for guides on how to run experiments, etc.
 
 The structure of our repository is as follows:
 - **notebooks**: analyses of data and results
-- **src**: model architecture, symbolic language processing, and utils
+- **src**: model architecture, symbolic language processing, result metrics and utils
 - **conf**: config files to run experiments
 - **data_processing**: data fetching module connecting to the virk API
 
