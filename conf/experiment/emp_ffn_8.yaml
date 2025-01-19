@@ -2,25 +2,26 @@
 
 ###########################
 ### Classification with Hierarchical Attention Network 
-### Bankruptcy predictions
+### Employee level predictions - stable, increase, decrease
 
 defaults:
-  - /datamodule: bankruptcy_tab
-  - /trainer: bankruptcy
+  - /datamodule: employee_tab
+  - /trainer: employee
   - /callbacks
   
 #GENERAL
 version: 1.0
-implementation: "bank-hyperparameter-tuning"
+implementation: "emp-hyperparam-tuning"
 comments: "m0del v1.1"
-name: "ffn-1"
-model_name: "tab_ffn"
+name: "ffn-8"
+model_name: "ffn"
 seed: 2023
 
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
-cls_num_targets: 2
-num_targets: 2
+cls_num_targets: 3
+num_targets: 3
+
 pooled: False #if the final representation is an averaged version of the sequence
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
 callbacks.checkpoint.dirpath: ${ckpt_path}
@@ -33,25 +34,25 @@ model:
   hparams:
 
     input_size: 985 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
-    hidden_size: 370
+    hidden_size: 630
     n_layers: 1
-    dropout: 0.1571789665157697
+    dropout: 0.29027508595733326
     batch_size: ${datamodule.batch_size}
+    
 
-    encoder_type: 'neural' #or 'logistic'
+    encoder_type: 'neural'
 
 
     #### CLS SPECIFIC
     cls_num_targets: ${cls_num_targets}
     num_targets: ${num_targets}
     loss_type: "entropy"
-    average_type: 'micro'
-    #class_weights: [1/0.963, 1/0.037]
-    #class_weights: [1.0384, 27.0270]
-    class_weights: [1.0,1.0]
-    
+    average_type: "macro"
+    #class_weights: [1/0.334, 1/0.314, 1/0.352]
+    #class_weights: [2.9904, 3.1847, 2.8409]
+    class_weights: [1.0, 1.0, 1.0]
 
-    learning_rate: 3.9e-4
+    learning_rate: 0.0003802510311963119
     weight_decay: 1.e-4
     beta1: 0.9
     beta2: 0.999
@@ -65,8 +66,8 @@ model:
     experiment_version: ${version} 
 
 trainer:
-  accelerator: 'gpu'
-  devices: [0]
+  accelerator: 'gpu' #'cpu'
+  devices: [0] #1
   callbacks:
   - ${callbacks.checkpoint_cls}
   - ${callbacks.lr_monitor}

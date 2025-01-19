@@ -2,88 +2,95 @@
 
 ###################################
 #### Classification with company2vec model 
-#### capital increase prediction
+#### Bankruptcy predictions
 
 defaults:
-  - /datamodule: capital_set
-  - /trainer: capital
+  - /datamodule: bankruptcy_set
+  - /trainer: bankruptcy
   - /callbacks
   
 #GENERAL
 version: 1.0
-implementation: "v1.0"
-comments: "m0del v1.0"
-name: "capital"
-model_name: "c2v"
+implementation: "bank-hyperparameter-tuning"
+comments: "m0del v1.1"
+name: "rnn-5"
+model_name: "rnn"
 seed: 2023
 
 stage: "finetuning" # pre_training, finetuning, prediction, hyp_tune
-pretrained_model_path: "/master_thesis/checkpoints/test_v9/pre_training_v9/0.0/0.0-epoch=29.ckpt" #UPDATE THIS
 
+### dissable during the tuning
 ckpt_path: ${last_ckpt:${callbacks.checkpoint_cls.dirpath}} ##a bit weird implementation - fix later
 callbacks.checkpoint.dirpath: ${ckpt_path}
 
 ###########################
-###################### MODEL 
+###################### MODEL
 model:
-  _target_: src.transformer.cls_model.Transformer_CLS
+  _target_: src.models.rnn.SimpleGRU
   _convert_: all
   hparams:
     seed: ${seed}
-    vocab_size: 2043 #this one you should knwo in advance (fix later)
+    vocab_size: 993 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
     batch_size: ${datamodule.batch_size}
-    max_length: ${datamodule.task.max_length}
-    hidden_size: 280
-    hidden_ff: 2210
+    max_length: ${datamodule.task.max_length}    
+    hidden_size: 512
+    hidden_ff: -1
     hidden_act: "swish"
-    n_encoders: 5
-    n_heads: 10
-    n_local: 7
-    local_window_size: 38
-    norm_type: "rezero"
+    n_encoders: -1
+    n_heads: -1
+    n_local: -1
+    local_window_size: -1
+    norm_type: None
     att_dropout: 0.1 ## Attention Layers
     fw_dropout: 0.1 ## Positionwise Layers
     dc_dropout: 0.1 ## Decoder Layer
     emb_dropout: 0.1 ## Embedding dropout
-    parametrize_emb: True
-    norm_input_emb: False
     ## TASK AND LOGS
     training_task: ${datamodule.task.name} # name of the task [mlm, simple]
     experiment_name: ${name}_${model_name}
     experiment_version: ${version} 
     ## ATTENTION
-    attention_type: "performer"
-    multihead_dc: False
-    num_random_features: 436
+    attention_type: None
+    multihead_dc: None
+    num_random_features: -1
+
+    parametrize_emb: True
+    norm_input_emb: False
+    norm_output_emb: False
+    freeze_embeddings: False
+    freeze_positions: False
 
     ## OPTIMIZER
     optimizer_type: "radam"
-    learning_rate: 0.01
-    weight_decay: 0.001
-    weight_decay_dc: 0.01
+    learning_rate: 1e-3
+    weight_decay: 1e-3
     beta1: 0.9
     beta2: 0.999
-    layer_lr_decay: 0.95 # for encoder layers
     lr_gamma: 0.8
-    epsilon: 1.e-6
+    epsilon: 1.e-8
+
+    ## RNN
+    n_layers: 2
+    bidirectional: false
 
     #### CLS SPECIFIC
-    freeze_embeddings: True
-    freeze_positions: False
+
     num_targets: 2
+    cls_num_targets: 2
     loss_type: "entropy"
     average_type: 'micro'
-    #class_weights: [1/0.98, 1/0.02]
-    #class_weights: [1.0204, 50]
-    class_weights: [1,1]
+    #class_weights: [1/0.963, 1/0.037]
+    #class_weights: [1.0384, 27.0270]
+    class_weights: [1.0,1.0]
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}
-    pretrained_model_path: ${pretrained_model_path}
+    pretrained_model_path: None
 
     stage: ${stage}
     implementation: ${implementation}
     version: ${version}
+
 
 trainer:
   accelerator: 'gpu'
@@ -97,5 +104,3 @@ trainer:
     - ${callbacks.save_weights}
     - ${callbacks.collect_outputs}
     - ${callbacks.track_ids}
-    - ${callbacks.calculate_risk}
-    #- ${callbacks.redraw_random_projections}

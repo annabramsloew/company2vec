@@ -70,4 +70,4 @@ trainer:
   - ${callbacks.reseed_dataloader}
   - ${callbacks.early_stopping}
   - ${callbacks.track_ids}
-#  - ${callbacks.collect_outputs} 
+  - ${callbacks.collect_outputs} 

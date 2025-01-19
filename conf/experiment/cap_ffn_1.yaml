@@ -1,20 +1,20 @@
 # @package _global_
 
-###########################
-### Classification with Hierarchical Attention Network 
-### Bankruptcy predictions
+###################################
+#### Classification with company2vec model 
+#### Capital increase predictions
 
 defaults:
-  - /datamodule: bankruptcy_tab
-  - /trainer: bankruptcy
+  - /datamodule: capital_tab
+  - /trainer: capital
   - /callbacks
   
 #GENERAL
 version: 1.0
-implementation: "bank-hyperparameter-tuning"
+implementation: "cap-hyperparameter-tuning"
 comments: "m0del v1.1"
 name: "ffn-1"
-model_name: "tab_ffn"
+model_name: "ffn"
 seed: 2023
 
 

@@ -1,20 +1,20 @@
 # @package _global_
 
-###########################
-### Classification with Hierarchical Attention Network 
-### Bankruptcy predictions
+###################################
+#### Classification with company2vec model 
+#### Capital increase predictions
 
 defaults:
-  - /datamodule: bankruptcy_tab
-  - /trainer: bankruptcy
+  - /datamodule: capital_tab
+  - /trainer: capital
   - /callbacks
   
 #GENERAL
 version: 1.0
-implementation: "bank-hyperparameter-tuning"
+implementation: "cap-hyperparameter-tuning"
 comments: "m0del v1.1"
-name: "ffn-1"
-model_name: "tab_ffn"
+name: "ffn-7"
+model_name: "ffn"
 seed: 2023
 
 
@@ -33,9 +33,9 @@ model:
   hparams:
 
     input_size: 985 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
-    hidden_size: 370
-    n_layers: 1
-    dropout: 0.1571789665157697
+    hidden_size: 548
+    n_layers: 8
+    dropout: 0.04582462440937921
     batch_size: ${datamodule.batch_size}
 
     encoder_type: 'neural' #or 'logistic'
@@ -51,7 +51,7 @@ model:
     class_weights: [1.0,1.0]
     
 
-    learning_rate: 3.9e-4
+    learning_rate: 0.00005
     weight_decay: 1.e-4
     beta1: 0.9
     beta2: 0.999

@@ -2,18 +2,18 @@
 
 ###################################
 #### Classification with company2vec model 
-#### Bankruptcy predictions
+#### Employee level predictions - stable, increase, decrease
 
 defaults:
-  - /datamodule: bankruptcy_set
-  - /trainer: bankruptcy
+  - /datamodule: employee_set
+  - /trainer: employee
   - /callbacks
   
 #GENERAL
 version: 1.0
-implementation: "bank-hyperparameter-tuning"
+implementation: "emp-hyperparam-tuning"
 comments: "m0del v1.1"
-name: "rnn-test"
+name: "rnn-3"
 model_name: "rnn"
 seed: 2023
 
@@ -33,7 +33,7 @@ model:
     vocab_size: 993 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}    
-    hidden_size: 370
+    hidden_size: 128
     hidden_ff: -1
     hidden_act: "swish"
     n_encoders: -1
@@ -41,10 +41,10 @@ model:
     n_local: -1
     local_window_size: -1
     norm_type: None
-    att_dropout: 0.1571789665157697 ## Attention Layers
-    fw_dropout: 0.1571789665157697 ## Positionwise Layers
-    dc_dropout: 0.1571789665157697 ## Decoder Layer
-    emb_dropout: 0.1571789665157697 ## Embedding dropout
+    att_dropout: 0.35 ## Attention Layers
+    fw_dropout: 0.35 ## Positionwise Layers
+    dc_dropout: 0.35 ## Decoder Layer
+    emb_dropout: 0.35 ## Embedding dropout
     ## TASK AND LOGS
     training_task: ${datamodule.task.name} # name of the task [mlm, simple]
     experiment_name: ${name}_${model_name}
@@ -70,18 +70,17 @@ model:
     epsilon: 1.e-8
 
     ## RNN
-    n_layers: 1
+    n_layers: 8
     bidirectional: false
 
     #### CLS SPECIFIC
-
-    num_targets: 2
-    cls_num_targets: 2
+    cls_num_targets: 3
+    num_targets: 3
     loss_type: "entropy"
-    average_type: 'micro'
-    #class_weights: [1/0.963, 1/0.037]
-    #class_weights: [1.0384, 27.0270]
-    class_weights: [1.0,1.0]
+    average_type: 'macro'
+    #class_weights: [1/0.334, 1/0.314, 1/0.352]
+    #class_weights: [2.9904, 3.1847, 2.8409]
+    class_weights: [1.0, 1.0, 1.0]
 
     pooled: True
     num_pooled_sep: ${datamodule.task.num_pooled_sep}
@@ -93,8 +92,8 @@ model:
 
 
 trainer:
-  accelerator: 'gpu'
-  devices: [0]
+  accelerator: 'gpu' # 'cpu'
+  devices: [0] # 1
   callbacks:
     - ${callbacks.checkpoint_cls}
     - ${callbacks.lr_monitor}

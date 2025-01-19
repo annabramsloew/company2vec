@@ -10,10 +10,10 @@ defaults:
   - /callbacks
   
 #GENERAL
-version: 0.1
-implementation: "v1.0"
+version: 1.0
+implementation: "emp-hyperparameter-tuning"
 comments: "m0del v1.1"
-name: "employee"
+name: "logreg"
 model_name: "tab_logreg"
 seed: 2023
 
@@ -44,9 +44,10 @@ model:
     loss_type: "entropy"
     average_type: "macro"
     #class_weights: [1/0.334, 1/0.314, 1/0.352]
-    class_weights: [2.9904, 3.1847, 2.8409]
+    #class_weights: [2.9904, 3.1847, 2.8409]
+    class_weights: [1.0, 1.0, 1.0]
 
-    learning_rate: 1.7e-4
+    learning_rate: 0.01
     weight_decay: 1.e-4
     beta1: 0.9
     beta2: 0.999
@@ -69,4 +70,4 @@ trainer:
   - ${callbacks.reseed_dataloader}
   - ${callbacks.early_stopping}
   - ${callbacks.track_ids}
-  #- ${callbacks.collect_outputs} 
+  - ${callbacks.collect_outputs} 

@@ -13,7 +13,7 @@ defaults:
 version: 1.0
 implementation: "bank-hyperparameter-tuning"
 comments: "m0del v1.1"
-name: "rnn-test"
+name: "rnn-8"
 model_name: "rnn"
 seed: 2023
 
@@ -33,7 +33,7 @@ model:
     vocab_size: 993 #this one you should knwo in advance (fix later) ## NB CHANGE VALUE
     batch_size: ${datamodule.batch_size}
     max_length: ${datamodule.task.max_length}    
-    hidden_size: 370
+    hidden_size: 64
     hidden_ff: -1
     hidden_act: "swish"
     n_encoders: -1
@@ -41,10 +41,10 @@ model:
     n_local: -1
     local_window_size: -1
     norm_type: None
-    att_dropout: 0.1571789665157697 ## Attention Layers
-    fw_dropout: 0.1571789665157697 ## Positionwise Layers
-    dc_dropout: 0.1571789665157697 ## Decoder Layer
-    emb_dropout: 0.1571789665157697 ## Embedding dropout
+    att_dropout: 0.2072452708037041 ## Attention Layers
+    fw_dropout: 0.2072452708037041 ## Positionwise Layers
+    dc_dropout: 0.2072452708037041 ## Decoder Layer
+    emb_dropout: 0.2072452708037041 ## Embedding dropout
     ## TASK AND LOGS
     training_task: ${datamodule.task.name} # name of the task [mlm, simple]
     experiment_name: ${name}_${model_name}
@@ -70,8 +70,8 @@ model:
     epsilon: 1.e-8
 
     ## RNN
-    n_layers: 1
-    bidirectional: false
+    n_layers: 2
+    bidirectional: true
 
     #### CLS SPECIFIC
 
