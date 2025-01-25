@@ -1,0 +1,15 @@
+defaults:
+  - /data/sources
+
+_target_: src.data.populations.bankruptcy.BankruptcySubPopulation
+
+name: bankruptcy_6mon_noIVS
+
+base_population:  
+  _target_: src.data.populations.from_annualreports.FromAnnualReports
+  name: global_set
+  token_data: ${data.sources.financials}
+
+period_start: 01-01-2022
+period_end: 30-06-2022
+company_type_filters: ["APS", "A/S"]
